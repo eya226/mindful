@@ -10,50 +10,41 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 const ProgressPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
-  // Mock data for charts
-  const moodData = [
-    { date: '2024-01-01', mood: 7, sessions: 2 },
-    { date: '2024-01-02', mood: 6, sessions: 1 },
-    { date: '2024-01-03', mood: 8, sessions: 3 },
-    { date: '2024-01-04', mood: 5, sessions: 1 },
-    { date: '2024-01-05', mood: 7, sessions: 2 },
-    { date: '2024-01-06', mood: 9, sessions: 2 },
-    { date: '2024-01-07', mood: 8, sessions: 3 },
-  ];
-
+  // Empty initial data - will be populated based on user activities
+  const moodData: any[] = [];
   const activityData = [
-    { activity: 'Therapy Sessions', count: 15, color: '#3B82F6' },
-    { activity: 'Journal Entries', count: 23, color: '#10B981' },
-    { activity: 'Meditation', count: 12, color: '#8B5CF6' },
-    { activity: 'Wellness Activities', count: 8, color: '#F59E0B' },
+    { activity: 'Therapy Sessions', count: 0, color: '#3B82F6' },
+    { activity: 'Journal Entries', count: 0, color: '#10B981' },
+    { activity: 'Meditation', count: 0, color: '#8B5CF6' },
+    { activity: 'Wellness Activities', count: 0, color: '#F59E0B' },
   ];
 
   const goalData = [
-    { name: 'Completed', value: 75, color: '#10B981' },
-    { name: 'In Progress', value: 15, color: '#F59E0B' },
-    { name: 'Not Started', value: 10, color: '#EF4444' },
+    { name: 'Completed', value: 0, color: '#10B981' },
+    { name: 'In Progress', value: 0, color: '#F59E0B' },
+    { name: 'Not Started', value: 100, color: '#EF4444' },
   ];
 
   const achievements = [
-    { id: 1, title: '7-Day Streak', description: 'Completed therapy sessions for 7 consecutive days', icon: <Target className="h-6 w-6" />, earned: true },
-    { id: 2, title: 'Mindful Writer', description: 'Written 20+ journal entries', icon: <BookOpen className="h-6 w-6" />, earned: true },
-    { id: 3, title: 'Zen Master', description: 'Completed 10 meditation sessions', icon: <Heart className="h-6 w-6" />, earned: true },
-    { id: 4, title: 'Progress Pioneer', description: 'Used the platform for 30 days', icon: <Calendar className="h-6 w-6" />, earned: false },
-    { id: 5, title: 'Wellness Warrior', description: 'Completed 50 wellness activities', icon: <Award className="h-6 w-6" />, earned: false },
+    { id: 1, title: '7-Day Streak', description: 'Complete therapy sessions for 7 consecutive days', icon: <Target className="h-6 w-6" />, earned: false },
+    { id: 2, title: 'Mindful Writer', description: 'Write 20+ journal entries', icon: <BookOpen className="h-6 w-6" />, earned: false },
+    { id: 3, title: 'Zen Master', description: 'Complete 10 meditation sessions', icon: <Heart className="h-6 w-6" />, earned: false },
+    { id: 4, title: 'Progress Pioneer', description: 'Use the platform for 30 days', icon: <Calendar className="h-6 w-6" />, earned: false },
+    { id: 5, title: 'Wellness Warrior', description: 'Complete 50 wellness activities', icon: <Award className="h-6 w-6" />, earned: false },
   ];
 
   const weeklyGoals = [
-    { goal: 'Complete 5 therapy sessions', progress: 80, current: 4, target: 5 },
-    { goal: 'Write 3 journal entries', progress: 100, current: 3, target: 3 },
-    { goal: 'Meditate for 60 minutes', progress: 60, current: 36, target: 60 },
-    { goal: 'Practice gratitude daily', progress: 85, current: 6, target: 7 },
+    { goal: 'Complete 5 therapy sessions', progress: 0, current: 0, target: 5 },
+    { goal: 'Write 3 journal entries', progress: 0, current: 0, target: 3 },
+    { goal: 'Meditate for 60 minutes', progress: 0, current: 0, target: 60 },
+    { goal: 'Practice gratitude daily', progress: 0, current: 0, target: 7 },
   ];
 
   const stats = [
-    { label: 'Total Sessions', value: '47', icon: <Brain className="h-8 w-8 text-blue-600" />, change: '+12%' },
-    { label: 'Journal Entries', value: '23', icon: <BookOpen className="h-8 w-8 text-green-600" />, change: '+8%' },
-    { label: 'Meditation Minutes', value: '340', icon: <Heart className="h-8 w-8 text-purple-600" />, change: '+25%' },
-    { label: 'Streak Days', value: '7', icon: <Target className="h-8 w-8 text-orange-600" />, change: '+2%' },
+    { label: 'Total Sessions', value: '0', icon: <Brain className="h-8 w-8 text-blue-600" />, change: '+0%' },
+    { label: 'Journal Entries', value: '0', icon: <BookOpen className="h-8 w-8 text-green-600" />, change: '+0%' },
+    { label: 'Meditation Minutes', value: '0', icon: <Heart className="h-8 w-8 text-purple-600" />, change: '+0%' },
+    { label: 'Streak Days', value: '0', icon: <Target className="h-8 w-8 text-orange-600" />, change: '+0%' },
   ];
 
   return (
@@ -100,18 +91,24 @@ const ProgressPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={moodData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
-                    <YAxis domain={[1, 10]} />
-                    <Tooltip 
-                      labelFormatter={(date) => new Date(date).toLocaleDateString()}
-                      formatter={(value, name) => [value, name === 'mood' ? 'Mood Rating' : 'Sessions']}
-                    />
-                    <Line type="monotone" dataKey="mood" stroke="#3B82F6" strokeWidth={3} dot={{ fill: '#3B82F6', strokeWidth: 2, r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+                {moodData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={moodData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
+                      <YAxis domain={[1, 10]} />
+                      <Tooltip 
+                        labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                        formatter={(value, name) => [value, name === 'mood' ? 'Mood Rating' : 'Sessions']}
+                      />
+                      <Line type="monotone" dataKey="mood" stroke="#3B82F6" strokeWidth={3} dot={{ fill: '#3B82F6', strokeWidth: 2, r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-gray-500">
+                    Start journaling to see your mood trends here
+                  </div>
+                )}
               </CardContent>
             </Card>
 

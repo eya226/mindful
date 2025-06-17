@@ -21,17 +21,8 @@ interface JournalEntry {
 
 const JournalPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [entries, setEntries] = useState<JournalEntry[]>([
-    {
-      id: '1',
-      title: 'Morning Reflections',
-      content: 'Started the day feeling optimistic. Had a good conversation with a friend yesterday that really lifted my spirits.',
-      mood: 'happy',
-      date: new Date(Date.now() - 86400000),
-      aiInsight: 'It\'s wonderful that social connections are having such a positive impact on your mood. Consider scheduling regular check-ins with friends.',
-      tags: ['friendship', 'positivity']
-    }
-  ]);
+  // Start with empty entries array instead of mock data
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [currentEntry, setCurrentEntry] = useState({
     title: '',
     content: '',

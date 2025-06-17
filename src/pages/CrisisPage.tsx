@@ -11,66 +11,80 @@ const CrisisPage = () => {
 
   const emergencyContacts = [
     {
-      name: "National Suicide Prevention Lifeline",
-      number: "988",
-      description: "Free and confidential emotional support 24/7",
+      name: "Ligne Verte - Urgences Nationales",
+      number: "80 101 997",
+      description: "Service d'urgence national tunisien disponible 24h/24",
       available: "24/7",
       type: "crisis"
     },
     {
-      name: "Crisis Text Line",
-      number: "Text HOME to 741741",
-      description: "Crisis counseling via text message",
+      name: "Police d'Urgence",
+      number: "197",
+      description: "Police d'urgence pour situations critiques",
       available: "24/7",
-      type: "text"
+      type: "emergency"
     },
     {
-      name: "SAMHSA National Helpline",
-      number: "1-800-662-4357",
-      description: "Treatment referral and information service",
+      name: "SAMU - Urgences Médicales",
+      number: "190",
+      description: "Service d'aide médicale urgente",
       available: "24/7",
-      type: "info"
+      type: "medical"
     },
     {
-      name: "National Alliance on Mental Illness",
-      number: "1-800-950-6264",
-      description: "Information and support for mental health",
-      available: "Mon-Fri 10am-10pm ET",
+      name: "Protection Civile",
+      number: "198",
+      description: "Services de protection civile et secours",
+      available: "24/7",
+      type: "emergency"
+    },
+    {
+      name: "SOS Amitié Tunisie",
+      number: "70 007 000",
+      description: "Ligne d'écoute pour détresse psychologique",
+      available: "Tous les jours 18h-24h",
       type: "support"
+    },
+    {
+      name: "Centre National de Prévention du Suicide",
+      number: "71 348 856",
+      description: "Aide et prévention du suicide",
+      available: "Lun-Ven 8h-17h",
+      type: "crisis"
     }
   ];
 
   const warningSignsCategories = [
     {
-      title: "Immediate Danger Signs",
+      title: "Signes de Danger Immédiat",
       signs: [
-        "Talking about wanting to die or hurt oneself",
-        "Looking for ways to kill oneself",
-        "Talking about feeling hopeless or having no purpose",
-        "Talking about feeling trapped or being in unbearable pain",
-        "Talking about being a burden to others"
+        "Parler de vouloir mourir ou se faire du mal",
+        "Chercher des moyens de se suicider",
+        "Parler de se sentir sans espoir ou sans but",
+        "Parler de se sentir piégé ou dans une douleur insupportable",
+        "Parler d'être un fardeau pour les autres"
       ],
       severity: "high"
     },
     {
-      title: "Behavioral Changes",
+      title: "Changements Comportementaux",
       signs: [
-        "Increased use of alcohol or drugs",
-        "Withdrawing from activities",
-        "Isolating from family and friends",
-        "Sleeping too much or too little",
-        "Visiting or calling people to say goodbye"
+        "Augmentation de l'usage d'alcool ou de drogues",
+        "Se retirer des activités",
+        "S'isoler de la famille et des amis",
+        "Dormir trop ou trop peu",
+        "Visiter ou appeler les gens pour dire au revoir"
       ],
       severity: "medium"
     },
     {
-      title: "Mood Changes",
+      title: "Changements d'Humeur",
       signs: [
-        "Depression, anxiety, loss of interest",
-        "Irritability or anger",
-        "Humiliation or shame",
-        "Agitation or restlessness",
-        "Relief or sudden improvement after being very depressed"
+        "Dépression, anxiété, perte d'intérêt",
+        "Irritabilité ou colère",
+        "Humiliation ou honte",
+        "Agitation ou agitation",
+        "Soulagement ou amélioration soudaine après avoir été très déprimé"
       ],
       severity: "medium"
     }
@@ -78,59 +92,59 @@ const CrisisPage = () => {
 
   const copingStrategies = [
     {
-      title: "Grounding Techniques",
+      title: "Techniques d'Ancrage",
       strategies: [
-        "5-4-3-2-1 technique: Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste",
-        "Focus on your breathing - slow, deep breaths",
-        "Hold an ice cube or splash cold water on your face",
-        "Listen to calming music or nature sounds"
+        "Technique 5-4-3-2-1: Nommez 5 choses que vous voyez, 4 que vous pouvez toucher, 3 que vous entendez, 2 que vous sentez, 1 que vous goûtez",
+        "Concentrez-vous sur votre respiration - respirations lentes et profondes",
+        "Tenez un glaçon ou aspergez d'eau froide sur votre visage",
+        "Écoutez de la musique apaisante ou des sons de la nature"
       ]
     },
     {
-      title: "Distraction Methods",
+      title: "Méthodes de Distraction",
       strategies: [
-        "Call a friend or family member",
-        "Take a walk outside",
-        "Watch a favorite movie or TV show",
-        "Do a puzzle or play a game",
-        "Write in a journal"
+        "Appelez un ami ou un membre de la famille",
+        "Promenez-vous dehors",
+        "Regardez un film ou une émission préférée",
+        "Faites un puzzle ou jouez à un jeu",
+        "Écrivez dans un journal"
       ]
     },
     {
-      title: "Self-Care Activities",
+      title: "Activités de Soins Personnels",
       strategies: [
-        "Take a warm bath or shower",
-        "Practice gentle yoga or stretching",
-        "Make a cup of tea",
-        "Pet an animal",
-        "Look at photos that make you happy"
+        "Prenez un bain ou une douche chaude",
+        "Pratiquez le yoga doux ou les étirements",
+        "Préparez une tasse de thé",
+        "Caressez un animal",
+        "Regardez des photos qui vous rendent heureux"
       ]
     }
   ];
 
   const professionalResources = [
     {
-      title: "Psychology Today",
-      description: "Find therapists, psychiatrists, and support groups in your area",
-      link: "https://www.psychologytoday.com",
+      title: "Ordre des Psychologues de Tunisie",
+      description: "Trouvez des psychologues agréés en Tunisie",
+      link: "http://www.psychologues.tn",
       type: "directory"
     },
     {
-      title: "BetterHelp",
-      description: "Online therapy platform with licensed professionals",
-      link: "https://www.betterhelp.com",
-      type: "online"
+      title: "Association Tunisienne de Psychiatrie",
+      description: "Ressources et psychiatres en Tunisie",
+      link: "https://atpsy.tn",
+      type: "directory"
     },
     {
-      title: "Talkspace",
-      description: "Text-based therapy with licensed therapists",
-      link: "https://www.talkspace.com",
-      type: "online"
+      title: "Centres de Santé Mentale - Tunis",
+      description: "Services de santé mentale publics à Tunis",
+      link: "#",
+      type: "public"
     },
     {
-      title: "NAMI Support Groups",
-      description: "Local support groups for individuals and families",
-      link: "https://www.nami.org/Support-Education/Support-Groups",
+      title: "ATPEF - Association Tunisienne de Prévention",
+      description: "Prévention et éducation en santé mentale",
+      link: "#",
       type: "support"
     }
   ];
@@ -145,18 +159,18 @@ const CrisisPage = () => {
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Shield className="h-8 w-8 text-red-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Crisis Support</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Soutien en Crise</h1>
             </div>
             <p className="text-gray-600 mb-4">
-              If you're in crisis or having thoughts of self-harm, you're not alone. Help is available 24/7.
+              Si vous êtes en crise ou avez des pensées d'automutilation, vous n'êtes pas seul. L'aide est disponible 24h/24.
             </p>
             <div className="bg-red-100 border border-red-300 rounded-lg p-4 max-w-2xl mx-auto">
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
-                <span className="font-semibold text-red-800">If this is an emergency, call 911 immediately</span>
+                <span className="font-semibold text-red-800">En cas d'urgence, appelez le 197 immédiatement</span>
               </div>
               <p className="text-red-700 text-sm">
-                If you or someone you know is in immediate danger, don't wait. Call emergency services right away.
+                Si vous ou quelqu'un que vous connaissez êtes en danger immédiat, n'attendez pas. Appelez les services d'urgence maintenant.
               </p>
             </div>
           </div>
@@ -166,7 +180,7 @@ const CrisisPage = () => {
             <CardHeader className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2">
                 <Phone className="h-5 w-5" />
-                Emergency Support Lines
+                Lignes de Soutien d'Urgence - Tunisie
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
@@ -192,17 +206,17 @@ const CrisisPage = () => {
               <div className="mt-6 flex justify-center gap-4">
                 <Button 
                   className="bg-red-600 hover:bg-red-700 text-white"
-                  onClick={() => window.open('tel:988')}
+                  onClick={() => window.open('tel:197')}
                 >
                   <Phone className="mr-2 h-4 w-4" />
-                  Call 988 Now
+                  Appeler 197 Maintenant
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => window.open('sms:741741?body=HOME')}
+                  onClick={() => window.open('tel:70007000')}
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
-                  Text Crisis Line
+                  SOS Amitié
                 </Button>
               </div>
             </CardContent>
@@ -214,7 +228,7 @@ const CrisisPage = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                  Warning Signs
+                  Signes d'Alerte
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -245,7 +259,7 @@ const CrisisPage = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Heart className="h-5 w-5 text-green-600" />
-                  Coping Strategies
+                  Stratégies d'Adaptation
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -271,7 +285,7 @@ const CrisisPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-blue-600" />
-                Professional Resources
+                Ressources Professionnelles en Tunisie
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -287,9 +301,10 @@ const CrisisPage = () => {
                       size="sm" 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => window.open(resource.link, '_blank')}
+                      onClick={() => resource.link !== '#' && window.open(resource.link, '_blank')}
+                      disabled={resource.link === '#'}
                     >
-                      Visit Resource
+                      {resource.link === '#' ? 'Bientôt Disponible' : 'Visiter la Ressource'}
                     </Button>
                   </div>
                 ))}
@@ -300,10 +315,10 @@ const CrisisPage = () => {
           {/* Self-Care Reminder */}
           <div className="mt-8 bg-gradient-to-r from-blue-100 to-green-100 rounded-lg p-6 text-center">
             <Heart className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">You Matter</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Vous Comptez</h2>
             <p className="text-gray-700 max-w-2xl mx-auto">
-              Your life has value and meaning. It's okay to not be okay, and it's okay to ask for help. 
-              Recovery is possible, and there are people who want to support you through this difficult time.
+              Votre vie a de la valeur et du sens. Il est normal de ne pas aller bien, et il est normal de demander de l'aide. 
+              La guérison est possible, et il y a des gens qui veulent vous soutenir pendant cette période difficile.
             </p>
           </div>
         </div>
