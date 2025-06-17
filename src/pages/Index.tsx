@@ -6,11 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Brain, Heart, BookOpen, Calendar, Shield, Users, Star, ArrowRight, CheckCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { AuthForm } from "@/components/AuthForm";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
 
   const features = [
     {
@@ -69,9 +72,27 @@ const Index = () => {
     }
   ];
 
+  // If user is already logged in, redirect to dashboard
+  if (user) {
+    navigate('/dashboard');
+    return null;
+  }
+
+  // Show auth form if user clicked sign in/sign up
+  if (showAuth) {
+    return <AuthForm />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+      <Navbar 
+        isLoggedIn={!!user} 
+        setIsLoggedIn={(value) => {
+          if (value) {
+            setShowAuth(true);
+          }
+        }} 
+      />
       
       {/* Hero Section */}
       <section className="pt-24 pb-16 px-4">
@@ -92,7 +113,7 @@ const Index = () => {
             <Button 
               size="lg" 
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
-              onClick={() => navigate('/therapy')}
+              onClick={() => setShowAuth(true)}
             >
               Start Free Session
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -101,7 +122,7 @@ const Index = () => {
               size="lg" 
               variant="outline" 
               className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 text-lg"
-              onClick={() => navigate('/journal')}
+              onClick={() => setShowAuth(true)}
             >
               Try Journaling
             </Button>
@@ -139,7 +160,7 @@ const Index = () => {
               <Card 
                 key={index} 
                 className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-lg hover:scale-105"
-                onClick={() => navigate(feature.path)}
+                onClick={() => setShowAuth(true)}
               >
                 <CardHeader className="text-center">
                   <div className="mx-auto mb-4 p-3 bg-gradient-to-br from-blue-50 to-green-50 rounded-full w-fit group-hover:scale-110 transition-transform">
@@ -197,7 +218,7 @@ const Index = () => {
           <Button 
             size="lg" 
             className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3 text-lg font-semibold"
-            onClick={() => navigate('/therapy')}
+            onClick={() => setShowAuth(true)}
           >
             Begin Your Free Session
             <ArrowRight className="ml-2 h-5 w-5" />
