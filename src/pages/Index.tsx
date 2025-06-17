@@ -7,11 +7,9 @@ import { Brain, Heart, BookOpen, Calendar, Shield, Users, Star, ArrowRight, Chec
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { AuthForm } from "@/components/AuthForm";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
 
@@ -71,12 +69,6 @@ const Index = () => {
       text: "Finally found a mental health platform that truly understands and adapts to my needs."
     }
   ];
-
-  // If user is already logged in, redirect to dashboard
-  if (user) {
-    navigate('/dashboard');
-    return null;
-  }
 
   // Show auth form if user clicked sign in/sign up
   if (showAuth) {
