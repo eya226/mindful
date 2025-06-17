@@ -8,10 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, Mail, Lock, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export const AuthForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
 
   const [signInData, setSignInData] = useState({
     email: '',
@@ -34,6 +36,7 @@ export const AuthForm = () => {
       toast.error(error.message);
     } else {
       toast.success('Welcome back!');
+      navigate('/dashboard');
     }
     
     setIsLoading(false);
@@ -49,6 +52,8 @@ export const AuthForm = () => {
       toast.error(error.message);
     } else {
       toast.success('Account created successfully! Please check your email to verify your account.');
+      // For now, redirect to dashboard even without email verification for better UX
+      navigate('/dashboard');
     }
     
     setIsLoading(false);
