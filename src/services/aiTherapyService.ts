@@ -12,10 +12,10 @@ class AITherapyService {
     console.log('Initializing AI therapy model...');
     
     try {
-      // Use a small, efficient model for therapy conversations
+      // Use a better conversational model for therapy
       this.textGenerator = await pipeline(
         'text-generation',
-        'Xenova/DialoGPT-small',
+        'Xenova/LaMini-Flan-T5-248M',
         { 
           device: 'webgpu'
         }
@@ -27,7 +27,7 @@ class AITherapyService {
       try {
         this.textGenerator = await pipeline(
           'text-generation',
-          'Xenova/DialoGPT-small',
+          'Xenova/LaMini-Flan-T5-248M',
           { device: 'cpu' }
         );
         console.log('AI therapy model loaded on CPU');
@@ -49,19 +49,18 @@ class AITherapyService {
     }
 
     try {
-      // Create therapy-focused prompt based on therapy type
-      const systemPrompt = this.getSystemPrompt(therapyType);
-      const context = conversationHistory.slice(-4).join(' '); // Last 4 messages for context
-      const prompt = `${systemPrompt}\n\nPrevious conversation: ${context}\nUser: ${userMessage}\nTherapist:`;
+      // Create a more natural therapy conversation prompt
+      const therapistPersonality = this.getTherapistPersonality(therapyType);
+      const prompt = this.buildTherapyPrompt(userMessage, therapyType, conversationHistory, therapistPersonality);
 
       const result = await this.textGenerator(prompt, {
-        max_new_tokens: 100,
-        temperature: 0.7,
+        max_new_tokens: 80,
+        temperature: 0.8,
         do_sample: true,
-        pad_token_id: 50256,
+        repetition_penalty: 1.2,
+        pad_token_id: 0,
       });
 
-      // Extract the generated response
       let response = '';
       if (Array.isArray(result)) {
         response = result[0]?.generated_text || '';
@@ -69,56 +68,148 @@ class AITherapyService {
         response = result.generated_text || '';
       }
 
-      // Clean up the response to extract only the therapist's reply
-      const therapistResponse = response
-        .split('Therapist:')
-        .pop()
-        ?.split('User:')[0]
-        ?.trim() || '';
-
+      // Clean and process the response
+      const cleanResponse = this.cleanTherapyResponse(response, prompt);
+      
       // Ensure we have a meaningful response
-      if (therapistResponse.length < 10) {
+      if (cleanResponse.length < 15 || this.isGenericResponse(cleanResponse)) {
         return this.getFallbackResponse(userMessage, therapyType);
       }
 
-      return therapistResponse;
+      return cleanResponse;
     } catch (error) {
       console.error('Error generating AI response:', error);
       return this.getFallbackResponse(userMessage, therapyType);
     }
   }
 
-  private getSystemPrompt(therapyType: string): string {
-    const prompts = {
-      cbt: "You are a compassionate Cognitive Behavioral Therapist. Help the user identify thought patterns and develop coping strategies. Ask thoughtful questions about their thoughts and feelings.",
-      dbt: "You are a skilled Dialectical Behavior Therapist. Focus on mindfulness, distress tolerance, and emotional regulation. Help the user practice acceptance and change strategies.",
-      general: "You are a supportive and empathetic therapist. Listen actively, validate feelings, and guide the conversation in a helpful direction."
+  private buildTherapyPrompt(userMessage: string, therapyType: string, conversationHistory: string[], personality: string): string {
+    const recentHistory = conversationHistory.slice(-3).join('\n');
+    const context = recentHistory ? `Previous conversation:\n${recentHistory}\n\n` : '';
+    
+    return `You are ${personality}
+
+${context}Client: "${userMessage}"
+
+Therapist response:`;
+  }
+
+  private getTherapistPersonality(therapyType: string): string {
+    const personalities = {
+      cbt: "a warm, insightful Cognitive Behavioral Therapist. You help clients examine their thought patterns with gentle curiosity. You ask thoughtful questions about the connection between thoughts, feelings, and behaviors. You're supportive but also help people challenge unhelpful thinking patterns.",
+      dbt: "a compassionate Dialectical Behavior Therapist. You focus on helping clients develop emotional regulation skills and mindfulness. You validate their emotions while teaching practical coping strategies. You often guide clients toward acceptance and change strategies.",
+      general: "a caring, empathetic therapist. You create a safe space for people to share their feelings. You listen actively, reflect back what you hear, and ask open-ended questions to help clients explore their experiences more deeply."
     };
 
-    return prompts[therapyType as keyof typeof prompts] || prompts.general;
+    return personalities[therapyType as keyof typeof personalities] || personalities.general;
+  }
+
+  private cleanTherapyResponse(response: string, prompt: string): string {
+    // Remove the prompt from the response
+    let cleaned = response.replace(prompt, '').trim();
+    
+    // Remove common AI artifacts
+    cleaned = cleaned.replace(/^(Therapist response:|Therapist:|Response:)/i, '').trim();
+    cleaned = cleaned.replace(/^["']|["']$/g, ''); // Remove surrounding quotes
+    cleaned = cleaned.split('\n')[0]; // Take only the first line
+    cleaned = cleaned.replace(/\s+/g, ' '); // Normalize whitespace
+    
+    // Ensure it ends properly
+    if (cleaned && !cleaned.match(/[.!?]$/)) {
+      cleaned += '.';
+    }
+
+    return cleaned;
+  }
+
+  private isGenericResponse(response: string): boolean {
+    const genericPhrases = [
+      'I understand',
+      'That sounds',
+      'Can you tell me more',
+      'How does that make you feel',
+      'I see',
+      'Thank you for sharing'
+    ];
+    
+    return genericPhrases.some(phrase => 
+      response.toLowerCase().includes(phrase.toLowerCase()) && response.length < 30
+    );
   }
 
   private getFallbackResponse(userMessage: string, therapyType: string): string {
-    const responses = {
-      cbt: [
-        "I hear what you're saying. Can you help me understand what thoughts were going through your mind when this happened?",
-        "That sounds challenging. Let's explore the connection between your thoughts and feelings about this situation.",
-        "Thank you for sharing that. What evidence do you have for and against this thought?",
-      ],
-      dbt: [
-        "Thank you for sharing that with me. Let's practice some mindfulness - what are you noticing in your body right now?",
-        "I can hear the emotion in what you're telling me. What skills might help you navigate this feeling?",
-        "That sounds really difficult. How can we use distress tolerance skills to help you through this?",
-      ],
-      general: [
-        "I'm here to listen and support you. Can you tell me more about how you're feeling?",
-        "That sounds important to you. How has this been affecting your daily life?",
-        "Thank you for trusting me with this. What would feel most helpful to explore right now?",
-      ],
-    };
+    // Analyze the user's message for more contextual responses
+    const messageLower = userMessage.toLowerCase();
+    
+    if (messageLower.includes('good') || messageLower.includes('great') || messageLower.includes('awesome')) {
+      return this.getPositiveResponses(therapyType);
+    }
+    
+    if (messageLower.includes('sad') || messageLower.includes('depressed') || messageLower.includes('down')) {
+      return this.getSadnessResponses(therapyType);
+    }
+    
+    if (messageLower.includes('anxious') || messageLower.includes('worried') || messageLower.includes('stress')) {
+      return this.getAnxietyResponses(therapyType);
+    }
+    
+    if (messageLower.includes('angry') || messageLower.includes('mad') || messageLower.includes('frustrated')) {
+      return this.getAngerResponses(therapyType);
+    }
 
-    const typeResponses = responses[therapyType as keyof typeof responses] || responses.general;
-    return typeResponses[Math.floor(Math.random() * typeResponses.length)];
+    return this.getGeneralResponses(therapyType);
+  }
+
+  private getPositiveResponses(therapyType: string): string {
+    const responses = [
+      "That's wonderful to hear! What specifically about this experience feels good to you?",
+      "I can hear the positivity in what you're sharing. What do you think contributed to feeling this way?",
+      "It sounds like things are going well for you right now. How can we build on these positive feelings?",
+      "I'm glad you're experiencing something positive. What would you like to explore about this feeling?"
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  private getSadnessResponses(therapyType: string): string {
+    const responses = [
+      "I hear that you're going through a difficult time. Can you help me understand what's weighing on you most right now?",
+      "Sadness can feel overwhelming. What thoughts tend to come up when you're feeling this way?",
+      "Thank you for trusting me with these difficult feelings. What would feel most supportive right now?",
+      "It takes courage to acknowledge when we're struggling. What has this sadness been like for you day to day?"
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  private getAnxietyResponses(therapyType: string): string {
+    const responses = [
+      "Anxiety can feel really intense. Where do you notice it most in your body when it comes up?",
+      "I hear the worry in what you're sharing. What thoughts tend to fuel this anxious feeling?",
+      "When you're feeling anxious like this, what usually helps you feel more grounded?",
+      "That sounds like a lot to carry. Can you tell me what specifically is making you feel most worried?"
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  private getAngerResponses(therapyType: string): string {
+    const responses = [
+      "Anger often tells us something important. What do you think this feeling is trying to communicate?",
+      "I can hear the intensity of what you're experiencing. What happened that triggered these feelings?",
+      "It sounds like something really significant happened. Can you walk me through what led to feeling this way?",
+      "Anger can be such a powerful emotion. What would it be like to explore what's underneath this feeling?"
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  private getGeneralResponses(therapyType: string): string {
+    const responses = [
+      "I'm really glad you shared that with me. What feels most important for us to focus on right now?",
+      "I can sense there's a lot going on for you. What would be most helpful to explore together?",
+      "Thank you for opening up about this. What thoughts or feelings are strongest for you as you talk about this?",
+      "I appreciate you trusting me with what you're experiencing. What stands out most to you about this situation?",
+      "It sounds like this is really significant for you. Can you help me understand what this means to you?",
+      "I want to make sure I understand what you're going through. What would you like me to know about your experience?"
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
   }
 
   isModelReady(): boolean {
