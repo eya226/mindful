@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { aiTherapyService } from '@/services/aiTherapyService';
 
 export interface ChatSession {
   id: string;
@@ -25,6 +25,12 @@ export const useChatSessions = () => {
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  // Initialize AI service when component mounts
+  useEffect(() => {
+    aiTherapyService.initialize();
+  }, []);
 
   // Fetch user's chat sessions
   const fetchSessions = async () => {
@@ -125,9 +131,19 @@ export const useChatSessions = () => {
 
     setMessages(prev => [...prev, typedUserMessage]);
 
-    // Generate AI response (simplified for now)
-    setTimeout(async () => {
-      const aiResponse = generateAIResponse(content, currentSession.therapy_type);
+    // Generate AI response using the local AI service
+    setAiLoading(true);
+    try {
+      // Get conversation history for context
+      const conversationHistory = messages.map(msg => 
+        `${msg.message_type === 'user' ? 'User' : 'Therapist'}: ${msg.content}`
+      );
+      
+      const aiResponse = await aiTherapyService.generateTherapyResponse(
+        content, 
+        currentSession.therapy_type,
+        conversationHistory
+      );
       
       const aiMessage = {
         session_id: currentSession.id,
@@ -154,7 +170,11 @@ export const useChatSessions = () => {
       };
 
       setMessages(prev => [...prev, typedAiMessage]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   // Simple AI response generation (replace with real AI integration)
@@ -192,10 +212,13 @@ export const useChatSessions = () => {
     currentSession,
     messages,
     loading,
+    aiLoading,
     fetchSessions,
     fetchMessages,
     createSession,
     sendMessage,
     setCurrentSession,
+    isAiReady: aiTherapyService.isModelReady(),
+    isAiInitializing: aiTherapyService.isInitializing(),
   };
 };

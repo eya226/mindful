@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Bot, User, Plus, MessageCircle } from 'lucide-react';
+import { Send, Bot, User, Plus, MessageCircle, Download } from 'lucide-react';
 import { useChatSessions, ChatSession, ChatMessage } from '@/hooks/useChatSessions';
 
 interface ChatInterfaceProps {
@@ -14,7 +14,6 @@ interface ChatInterfaceProps {
 
 export const ChatInterface = ({ therapyType = 'general' }: ChatInterfaceProps) => {
   const [inputMessage, setInputMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -22,10 +21,13 @@ export const ChatInterface = ({ therapyType = 'general' }: ChatInterfaceProps) =
     currentSession,
     messages,
     loading,
+    aiLoading,
     fetchMessages,
     createSession,
     sendMessage,
     setCurrentSession,
+    isAiReady,
+    isAiInitializing,
   } = useChatSessions();
 
   const scrollToBottom = () => {
@@ -41,14 +43,11 @@ export const ChatInterface = ({ therapyType = 'general' }: ChatInterfaceProps) =
 
     const messageToSend = inputMessage;
     setInputMessage('');
-    setIsTyping(true);
 
     try {
       await sendMessage(messageToSend);
     } catch (error) {
       console.error('Error sending message:', error);
-    } finally {
-      setIsTyping(false);
     }
   };
 
@@ -89,6 +88,12 @@ export const ChatInterface = ({ therapyType = 'general' }: ChatInterfaceProps) =
             <Plus className="h-4 w-4 mr-2" />
             New Session
           </Button>
+          {isAiInitializing && (
+            <div className="mt-2 text-xs text-gray-600 flex items-center">
+              <Download className="h-3 w-3 mr-1 animate-pulse" />
+              Loading AI model...
+            </div>
+          )}
         </div>
         <ScrollArea className="flex-1 p-2">
           {sessions.map((session) => (
@@ -122,6 +127,11 @@ export const ChatInterface = ({ therapyType = 'general' }: ChatInterfaceProps) =
               <CardTitle className="text-lg flex items-center gap-2">
                 <Bot className="h-5 w-5 text-blue-600" />
                 {currentSession.title}
+                {isAiReady && (
+                  <Badge variant="outline" className="text-xs">
+                    AI Ready
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
 
@@ -133,6 +143,11 @@ export const ChatInterface = ({ therapyType = 'general' }: ChatInterfaceProps) =
                     <Bot className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p>Start a conversation with your AI therapist</p>
                     <p className="text-sm mt-2">I'm here to listen and support you.</p>
+                    {!isAiReady && (
+                      <p className="text-xs mt-2 text-orange-600">
+                        AI model is loading... You can start chatting and I'll respond once ready.
+                      </p>
+                    )}
                   </div>
                 )}
                 
@@ -161,7 +176,7 @@ export const ChatInterface = ({ therapyType = 'general' }: ChatInterfaceProps) =
                   </div>
                 ))}
                 
-                {isTyping && (
+                {aiLoading && (
                   <div className="flex justify-start">
                     <div className="bg-gray-100 p-3 rounded-lg">
                       <div className="flex items-center gap-2">
@@ -188,11 +203,11 @@ export const ChatInterface = ({ therapyType = 'general' }: ChatInterfaceProps) =
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
                   className="flex-1"
-                  disabled={isTyping}
+                  disabled={aiLoading}
                 />
                 <Button 
                   onClick={handleSendMessage} 
-                  disabled={!inputMessage.trim() || isTyping}
+                  disabled={!inputMessage.trim() || aiLoading}
                   size="icon"
                 >
                   <Send className="h-4 w-4" />
