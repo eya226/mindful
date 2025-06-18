@@ -1,8 +1,8 @@
 
-import { pipeline, Pipeline } from '@huggingface/transformers';
+import { pipeline } from '@huggingface/transformers';
 
 class AITherapyService {
-  private textGenerator: Pipeline | null = null;
+  private textGenerator: any = null;
   private isLoading = false;
 
   async initialize() {
@@ -17,8 +17,7 @@ class AITherapyService {
         'text-generation',
         'Xenova/DialoGPT-small',
         { 
-          device: 'webgpu',
-          fallback_device: 'cpu'
+          device: 'webgpu'
         }
       );
       console.log('AI therapy model loaded successfully');
