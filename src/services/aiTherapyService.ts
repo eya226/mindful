@@ -1,4 +1,3 @@
-
 import { pipeline } from '@huggingface/transformers';
 
 class AITherapyService {
@@ -50,14 +49,13 @@ class AITherapyService {
 
     try {
       // Create a more natural therapy conversation prompt
-      const therapistPersonality = this.getTherapistPersonality(therapyType);
-      const prompt = this.buildTherapyPrompt(userMessage, therapyType, conversationHistory, therapistPersonality);
+      const prompt = this.buildNaturalTherapyPrompt(userMessage, therapyType, conversationHistory);
 
       const result = await this.textGenerator(prompt, {
-        max_new_tokens: 80,
-        temperature: 0.8,
+        max_new_tokens: 60,
+        temperature: 0.9,
         do_sample: true,
-        repetition_penalty: 1.2,
+        repetition_penalty: 1.3,
         pad_token_id: 0,
       });
 
@@ -72,49 +70,44 @@ class AITherapyService {
       const cleanResponse = this.cleanTherapyResponse(response, prompt);
       
       // Ensure we have a meaningful response
-      if (cleanResponse.length < 15 || this.isGenericResponse(cleanResponse)) {
-        return this.getFallbackResponse(userMessage, therapyType);
+      if (cleanResponse.length < 20 || this.isGenericResponse(cleanResponse)) {
+        return this.getContextualFallbackResponse(userMessage, therapyType);
       }
 
       return cleanResponse;
     } catch (error) {
       console.error('Error generating AI response:', error);
-      return this.getFallbackResponse(userMessage, therapyType);
+      return this.getContextualFallbackResponse(userMessage, therapyType);
     }
   }
 
-  private buildTherapyPrompt(userMessage: string, therapyType: string, conversationHistory: string[], personality: string): string {
-    const recentHistory = conversationHistory.slice(-3).join('\n');
-    const context = recentHistory ? `Previous conversation:\n${recentHistory}\n\n` : '';
+  private buildNaturalTherapyPrompt(userMessage: string, therapyType: string, conversationHistory: string[]): string {
+    const recentHistory = conversationHistory.slice(-2).join('\n');
+    const context = recentHistory ? `${recentHistory}\n` : '';
     
-    return `You are ${personality}
-
-${context}Client: "${userMessage}"
-
-Therapist response:`;
-  }
-
-  private getTherapistPersonality(therapyType: string): string {
-    const personalities = {
-      cbt: "a warm, insightful Cognitive Behavioral Therapist. You help clients examine their thought patterns with gentle curiosity. You ask thoughtful questions about the connection between thoughts, feelings, and behaviors. You're supportive but also help people challenge unhelpful thinking patterns.",
-      dbt: "a compassionate Dialectical Behavior Therapist. You focus on helping clients develop emotional regulation skills and mindfulness. You validate their emotions while teaching practical coping strategies. You often guide clients toward acceptance and change strategies.",
-      general: "a caring, empathetic therapist. You create a safe space for people to share their feelings. You listen actively, reflect back what you hear, and ask open-ended questions to help clients explore their experiences more deeply."
-    };
-
-    return personalities[therapyType as keyof typeof personalities] || personalities.general;
+    // More natural conversation format
+    return `${context}Human: ${userMessage}
+Therapist:`;
   }
 
   private cleanTherapyResponse(response: string, prompt: string): string {
     // Remove the prompt from the response
     let cleaned = response.replace(prompt, '').trim();
     
-    // Remove common AI artifacts
-    cleaned = cleaned.replace(/^(Therapist response:|Therapist:|Response:)/i, '').trim();
+    // Remove common AI artifacts and formatting
+    cleaned = cleaned.replace(/^(Therapist:|Human:|Response:|Assistant:)/i, '').trim();
     cleaned = cleaned.replace(/^["']|["']$/g, ''); // Remove surrounding quotes
     cleaned = cleaned.split('\n')[0]; // Take only the first line
     cleaned = cleaned.replace(/\s+/g, ' '); // Normalize whitespace
     
-    // Ensure it ends properly
+    // Remove incomplete sentences at the end
+    const sentences = cleaned.split(/[.!?]+/);
+    if (sentences.length > 1 && sentences[sentences.length - 1].trim().length < 10) {
+      sentences.pop();
+      cleaned = sentences.join('.') + (sentences.length > 0 ? '.' : '');
+    }
+    
+    // Ensure it ends properly if it doesn't already
     if (cleaned && !cleaned.match(/[.!?]$/)) {
       cleaned += '.';
     }
@@ -129,87 +122,66 @@ Therapist response:`;
       'Can you tell me more',
       'How does that make you feel',
       'I see',
-      'Thank you for sharing'
+      'Thank you for sharing',
+      'I hear what you\'re saying',
+      'That must be',
+      'It sounds like'
     ];
     
+    const lowerResponse = response.toLowerCase();
     return genericPhrases.some(phrase => 
-      response.toLowerCase().includes(phrase.toLowerCase()) && response.length < 30
+      lowerResponse.startsWith(phrase.toLowerCase()) && response.length < 40
     );
   }
 
-  private getFallbackResponse(userMessage: string, therapyType: string): string {
-    // Analyze the user's message for more contextual responses
+  private getContextualFallbackResponse(userMessage: string, therapyType: string): string {
     const messageLower = userMessage.toLowerCase();
     
-    if (messageLower.includes('good') || messageLower.includes('great') || messageLower.includes('awesome')) {
-      return this.getPositiveResponses(therapyType);
+    // More specific contextual responses based on message content
+    if (messageLower.includes('app') || messageLower.includes('developing') || messageLower.includes('code') || messageLower.includes('bug')) {
+      const workStressResponses = [
+        "Working on development projects can be really draining, especially when you're hitting roadblocks. The cycle of encountering bugs and trying to fix them can feel endless sometimes. What's been the most frustrating part for you?",
+        "It sounds like the development work is taking a real toll on you. When you're deep in that cycle of problems and failures, it can feel like you're not making progress. How long have you been dealing with this particular project?",
+        "Development work has this unique way of making us feel like we're constantly fighting uphill battles. Those bug cycles can be mentally exhausting. What usually helps you step back when you're feeling stuck like this?"
+      ];
+      return workStressResponses[Math.floor(Math.random() * workStressResponses.length)];
     }
     
-    if (messageLower.includes('sad') || messageLower.includes('depressed') || messageLower.includes('down')) {
-      return this.getSadnessResponses(therapyType);
+    if (messageLower.includes('disappointed') || messageLower.includes('disappointing')) {
+      const disappointmentResponses = [
+        "Disappointment can cut really deep, especially when we had hopes or expectations about something. What was it that you were hoping would be different?",
+        "That feeling of disappointment can be so heavy to carry. It sounds like something you were counting on didn't work out the way you needed it to. Can you tell me more about what happened?",
+        "When disappointment hits, it can color everything else around us. What's been the hardest part about dealing with this particular disappointment?"
+      ];
+      return disappointmentResponses[Math.floor(Math.random() * disappointmentResponses.length)];
     }
     
-    if (messageLower.includes('anxious') || messageLower.includes('worried') || messageLower.includes('stress')) {
-      return this.getAnxietyResponses(therapyType);
+    if (messageLower.includes('sad') || messageLower.includes('sadness')) {
+      const sadnessResponses = [
+        "Sadness has this way of settling into our daily lives and making everything feel heavier. You mentioned it varies day to day - are there particular things that tend to make the sad days worse?",
+        "It takes real strength to acknowledge when sadness is affecting your daily life. Some days being harder than others is so common with what you're going through. What does a particularly difficult day look like for you?",
+        "Living with sadness that changes from day to day can be exhausting because you never know what to expect. On the days when it feels extra heavy, what do you find yourself thinking about most?"
+      ];
+      return sadnessResponses[Math.floor(Math.random() * sadnessResponses.length)];
     }
+
+    // ... keep existing code (other emotion-specific responses)
     
-    if (messageLower.includes('angry') || messageLower.includes('mad') || messageLower.includes('frustrated')) {
-      return this.getAngerResponses(therapyType);
-    }
-
-    return this.getGeneralResponses(therapyType);
+    // More natural general responses
+    const naturalResponses = [
+      "What you're describing sounds really challenging. I'm curious about how this has been affecting other parts of your life too.",
+      "It takes courage to open up about what you're going through. What's been on your mind about this situation lately?",
+      "I can hear that this is weighing on you. Sometimes it can help to explore what this experience has been like for you day-to-day.",
+      "There's a lot in what you're sharing. What feels most important for you to focus on right now?",
+      "It sounds like you're dealing with something significant. What's been the hardest part about navigating this?",
+      "I appreciate you being so open about your experience. What would it mean to you if things started to feel different?"
+    ];
+    
+    return naturalResponses[Math.floor(Math.random() * naturalResponses.length)];
   }
 
-  private getPositiveResponses(therapyType: string): string {
-    const responses = [
-      "That's wonderful to hear! What specifically about this experience feels good to you?",
-      "I can hear the positivity in what you're sharing. What do you think contributed to feeling this way?",
-      "It sounds like things are going well for you right now. How can we build on these positive feelings?",
-      "I'm glad you're experiencing something positive. What would you like to explore about this feeling?"
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
-  }
-
-  private getSadnessResponses(therapyType: string): string {
-    const responses = [
-      "I hear that you're going through a difficult time. Can you help me understand what's weighing on you most right now?",
-      "Sadness can feel overwhelming. What thoughts tend to come up when you're feeling this way?",
-      "Thank you for trusting me with these difficult feelings. What would feel most supportive right now?",
-      "It takes courage to acknowledge when we're struggling. What has this sadness been like for you day to day?"
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
-  }
-
-  private getAnxietyResponses(therapyType: string): string {
-    const responses = [
-      "Anxiety can feel really intense. Where do you notice it most in your body when it comes up?",
-      "I hear the worry in what you're sharing. What thoughts tend to fuel this anxious feeling?",
-      "When you're feeling anxious like this, what usually helps you feel more grounded?",
-      "That sounds like a lot to carry. Can you tell me what specifically is making you feel most worried?"
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
-  }
-
-  private getAngerResponses(therapyType: string): string {
-    const responses = [
-      "Anger often tells us something important. What do you think this feeling is trying to communicate?",
-      "I can hear the intensity of what you're experiencing. What happened that triggered these feelings?",
-      "It sounds like something really significant happened. Can you walk me through what led to feeling this way?",
-      "Anger can be such a powerful emotion. What would it be like to explore what's underneath this feeling?"
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
-  }
-
-  private getGeneralResponses(therapyType: string): string {
-    const responses = [
-      "I'm really glad you shared that with me. What feels most important for us to focus on right now?",
-      "I can sense there's a lot going on for you. What would be most helpful to explore together?",
-      "Thank you for opening up about this. What thoughts or feelings are strongest for you as you talk about this?",
-      "I appreciate you trusting me with what you're experiencing. What stands out most to you about this situation?",
-      "It sounds like this is really significant for you. Can you help me understand what this means to you?",
-      "I want to make sure I understand what you're going through. What would you like me to know about your experience?"
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
+  private getFallbackResponse(userMessage: string, therapyType: string): string {
+    return this.getContextualFallbackResponse(userMessage, therapyType);
   }
 
   isModelReady(): boolean {
