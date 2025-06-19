@@ -131,6 +131,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activities: {
+        Row: {
+          activity_type: string
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          mood_rating: number | null
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          mood_rating?: number | null
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          mood_rating?: number | null
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

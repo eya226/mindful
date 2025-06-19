@@ -35,7 +35,8 @@ export interface ProgressStats {
 class ProgressTracker {
   async trackActivity(activity: Omit<UserActivity, 'id' | 'created_at'>): Promise<void> {
     try {
-      const { error } = await supabase
+      // Use type assertion for the table query since types haven't been regenerated yet
+      const { error } = await (supabase as any)
         .from('user_activities')
         .insert({
           ...activity,
@@ -52,8 +53,8 @@ class ProgressTracker {
 
   async getProgressStats(userId: string): Promise<ProgressStats> {
     try {
-      // Get all user activities
-      const { data: activities, error } = await supabase
+      // Get all user activities using type assertion
+      const { data: activities, error } = await (supabase as any)
         .from('user_activities')
         .select('*')
         .eq('user_id', userId)
