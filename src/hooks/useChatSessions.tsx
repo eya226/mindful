@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { aiTherapyService } from '@/services/aiTherapyService';
+import { mentalHealthAI } from '@/services/mentalHealthAI';
+import { progressTracker } from '@/services/progressTracker';
 
 export interface ChatSession {
   id: string;
@@ -26,10 +27,11 @@ export const useChatSessions = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
 
   // Initialize AI service when component mounts
   useEffect(() => {
-    aiTherapyService.initialize();
+    mentalHealthAI.initialize();
   }, []);
 
   // Fetch user's chat sessions
@@ -97,6 +99,7 @@ export const useChatSessions = () => {
     setCurrentSession(data);
     setSessions(prev => [data, ...prev]);
     setMessages([]);
+    setSessionStartTime(new Date());
     return data;
   };
 
@@ -123,7 +126,6 @@ export const useChatSessions = () => {
       return;
     }
 
-    // Type the response properly
     const typedUserMessage = {
       ...userMessageData,
       message_type: userMessageData.message_type as 'user' | 'ai'
@@ -131,15 +133,14 @@ export const useChatSessions = () => {
 
     setMessages(prev => [...prev, typedUserMessage]);
 
-    // Generate AI response using the local AI service
+    // Generate AI response using the specialized mental health AI
     setAiLoading(true);
     try {
-      // Get conversation history for context
       const conversationHistory = messages.map(msg => 
-        `${msg.message_type === 'user' ? 'User' : 'Therapist'}: ${msg.content}`
+        `${msg.message_type === 'user' ? 'Client' : 'Therapist'}: ${msg.content}`
       );
       
-      const aiResponse = await aiTherapyService.generateTherapyResponse(
+      const aiResponse = await mentalHealthAI.generateTherapyResponse(
         content, 
         currentSession.therapy_type,
         conversationHistory
@@ -163,13 +164,18 @@ export const useChatSessions = () => {
         return;
       }
 
-      // Type the AI response properly
       const typedAiMessage = {
         ...aiMessageData,
         message_type: aiMessageData.message_type as 'user' | 'ai'
       };
 
       setMessages(prev => [...prev, typedAiMessage]);
+
+      // Track therapy session activity
+      if (sessionStartTime) {
+        const sessionDuration = Math.round((new Date().getTime() - sessionStartTime.getTime()) / (1000 * 60));
+        await progressTracker.trackTherapySession(user.id, sessionDuration);
+      }
     } catch (error) {
       console.error('Error generating AI response:', error);
     } finally {
@@ -177,33 +183,11 @@ export const useChatSessions = () => {
     }
   };
 
-  // Simple AI response generation (replace with real AI integration)
-  const generateAIResponse = (userMessage: string, therapyType: string) => {
-    const responses = {
-      cbt: [
-        "I hear what you're saying. Can you help me understand what thoughts were going through your mind when this happened?",
-        "That sounds challenging. Let's explore the connection between your thoughts and feelings about this situation.",
-        "It's important that you're sharing this with me. What evidence do you have for and against this thought?",
-      ],
-      dbt: [
-        "Thank you for sharing that with me. Let's practice some mindfulness - what are you noticing in your body right now?",
-        "I can hear the emotion in what you're telling me. What skills might help you navigate this feeling?",
-        "That sounds really difficult. How can we use distress tolerance skills to help you through this?",
-      ],
-      general: [
-        "I'm here to listen and support you. Can you tell me more about how you're feeling?",
-        "That sounds important to you. How has this been affecting your daily life?",
-        "Thank you for trusting me with this. What would feel most helpful to explore right now?",
-      ],
-    };
-
-    const typeResponses = responses[therapyType as keyof typeof responses] || responses.general;
-    return typeResponses[Math.floor(Math.random() * typeResponses.length)];
-  };
-
   useEffect(() => {
     if (user) {
       fetchSessions();
+      // Track login activity
+      progressTracker.trackLogin(user.id);
     }
   }, [user]);
 
@@ -218,7 +202,7 @@ export const useChatSessions = () => {
     createSession,
     sendMessage,
     setCurrentSession,
-    isAiReady: aiTherapyService.isModelReady(),
-    isAiInitializing: aiTherapyService.isInitializing(),
+    isAiReady: mentalHealthAI.isModelReady(),
+    isAiInitializing: mentalHealthAI.isInitializing(),
   };
 };

@@ -1,55 +1,130 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
+import { progressTracker, ProgressStats } from "@/services/progressTracker";
 import { TrendingUp, Calendar, Target, Award, Brain, BookOpen, Heart, CheckCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 const ProgressPage = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const { user, signOut } = useAuth();
+  const [stats, setStats] = useState<ProgressStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Empty initial data - will be populated based on user activities
-  const moodData: any[] = [];
+  useEffect(() => {
+    if (user) {
+      loadProgressData();
+    }
+  }, [user]);
+
+  const loadProgressData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const progressStats = await progressTracker.getProgressStats(user.id);
+      setStats(progressStats);
+    } catch (error) {
+      console.error('Error loading progress data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || !stats) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <Navbar isLoggedIn={!!user} setIsLoggedIn={() => signOut()} />
+        <div className="pt-20 pb-8 px-4 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
   const activityData = [
-    { activity: 'Therapy Sessions', count: 0, color: '#3B82F6' },
-    { activity: 'Journal Entries', count: 0, color: '#10B981' },
-    { activity: 'Meditation', count: 0, color: '#8B5CF6' },
-    { activity: 'Wellness Activities', count: 0, color: '#F59E0B' },
+    { activity: 'Therapy Sessions', count: stats.totalSessions, color: '#3B82F6' },
+    { activity: 'Journal Entries', count: stats.journalEntries, color: '#10B981' },
+    { activity: 'Meditation Minutes', count: stats.meditationMinutes, color: '#8B5CF6' },
+    { activity: 'Streak Days', count: stats.streakDays, color: '#F59E0B' },
   ];
 
   const goalData = [
-    { name: 'Completed', value: 0, color: '#10B981' },
-    { name: 'In Progress', value: 0, color: '#F59E0B' },
-    { name: 'Not Started', value: 100, color: '#EF4444' },
+    { 
+      name: 'Completed', 
+      value: Object.values(stats.weeklyGoals).filter(goal => goal.current >= goal.target).length * 25,
+      color: '#10B981' 
+    },
+    { 
+      name: 'In Progress', 
+      value: Object.values(stats.weeklyGoals).filter(goal => goal.current > 0 && goal.current < goal.target).length * 25,
+      color: '#F59E0B' 
+    },
+    { 
+      name: 'Not Started', 
+      value: Object.values(stats.weeklyGoals).filter(goal => goal.current === 0).length * 25,
+      color: '#EF4444' 
+    },
   ];
 
   const achievements = [
-    { id: 1, title: '7-Day Streak', description: 'Complete therapy sessions for 7 consecutive days', icon: <Target className="h-6 w-6" />, earned: false },
-    { id: 2, title: 'Mindful Writer', description: 'Write 20+ journal entries', icon: <BookOpen className="h-6 w-6" />, earned: false },
-    { id: 3, title: 'Zen Master', description: 'Complete 10 meditation sessions', icon: <Heart className="h-6 w-6" />, earned: false },
-    { id: 4, title: 'Progress Pioneer', description: 'Use the platform for 30 days', icon: <Calendar className="h-6 w-6" />, earned: false },
-    { id: 5, title: 'Wellness Warrior', description: 'Complete 50 wellness activities', icon: <Award className="h-6 w-6" />, earned: false },
+    { 
+      id: 1, 
+      title: '7-Day Streak', 
+      description: 'Complete therapy sessions for 7 consecutive days', 
+      icon: <Target className="h-6 w-6" />, 
+      earned: stats.achievements.sevenDayStreak 
+    },
+    { 
+      id: 2, 
+      title: 'Mindful Writer', 
+      description: 'Write 20+ journal entries', 
+      icon: <BookOpen className="h-6 w-6" />, 
+      earned: stats.achievements.mindfulWriter 
+    },
+    { 
+      id: 3, 
+      title: 'Zen Master', 
+      description: 'Complete 10 meditation sessions', 
+      icon: <Heart className="h-6 w-6" />, 
+      earned: stats.achievements.zenMaster 
+    },
+    { 
+      id: 4, 
+      title: 'Progress Pioneer', 
+      description: 'Use the platform for 30 days', 
+      icon: <Calendar className="h-6 w-6" />, 
+      earned: stats.achievements.progressPioneer 
+    },
+    { 
+      id: 5, 
+      title: 'Wellness Warrior', 
+      description: 'Complete 50 wellness activities', 
+      icon: <Award className="h-6 w-6" />, 
+      earned: stats.achievements.wellnessWarrior 
+    },
   ];
 
   const weeklyGoals = [
-    { goal: 'Complete 5 therapy sessions', progress: 0, current: 0, target: 5 },
-    { goal: 'Write 3 journal entries', progress: 0, current: 0, target: 3 },
-    { goal: 'Meditate for 60 minutes', progress: 0, current: 0, target: 60 },
-    { goal: 'Practice gratitude daily', progress: 0, current: 0, target: 7 },
+    { goal: 'Complete 5 therapy sessions', progress: (stats.weeklyGoals.therapySessions.current / stats.weeklyGoals.therapySessions.target) * 100, current: stats.weeklyGoals.therapySessions.current, target: stats.weeklyGoals.therapySessions.target },
+    { goal: 'Write 3 journal entries', progress: (stats.weeklyGoals.journalEntries.current / stats.weeklyGoals.journalEntries.target) * 100, current: stats.weeklyGoals.journalEntries.current, target: stats.weeklyGoals.journalEntries.target },
+    { goal: 'Meditate for 60 minutes', progress: (stats.weeklyGoals.meditationMinutes.current / stats.weeklyGoals.meditationMinutes.target) * 100, current: stats.weeklyGoals.meditationMinutes.current, target: stats.weeklyGoals.meditationMinutes.target },
+    { goal: 'Practice daily activities', progress: (stats.weeklyGoals.dailyPractice.current / stats.weeklyGoals.dailyPractice.target) * 100, current: stats.weeklyGoals.dailyPractice.current, target: stats.weeklyGoals.dailyPractice.target },
   ];
 
-  const stats = [
-    { label: 'Total Sessions', value: '0', icon: <Brain className="h-8 w-8 text-blue-600" />, change: '+0%' },
-    { label: 'Journal Entries', value: '0', icon: <BookOpen className="h-8 w-8 text-green-600" />, change: '+0%' },
-    { label: 'Meditation Minutes', value: '0', icon: <Heart className="h-8 w-8 text-purple-600" />, change: '+0%' },
-    { label: 'Streak Days', value: '0', icon: <Target className="h-8 w-8 text-orange-600" />, change: '+0%' },
+  const statsOverview = [
+    { label: 'Total Sessions', value: stats.totalSessions.toString(), icon: <Brain className="h-8 w-8 text-blue-600" />, change: `+${stats.weeklyGoals.therapySessions.current} this week` },
+    { label: 'Journal Entries', value: stats.journalEntries.toString(), icon: <BookOpen className="h-8 w-8 text-green-600" />, change: `+${stats.weeklyGoals.journalEntries.current} this week` },
+    { label: 'Meditation Minutes', value: stats.meditationMinutes.toString(), icon: <Heart className="h-8 w-8 text-purple-600" />, change: `+${stats.weeklyGoals.meditationMinutes.current} this week` },
+    { label: 'Streak Days', value: stats.streakDays.toString(), icon: <Target className="h-8 w-8 text-orange-600" />, change: `Current streak` },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+      <Navbar isLoggedIn={!!user} setIsLoggedIn={() => signOut()} />
       
       <div className="pt-20 pb-8 px-4">
         <div className="max-w-6xl mx-auto">
@@ -63,14 +138,14 @@ const ProgressPage = () => {
 
           {/* Stats Overview */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
+            {statsOverview.map((stat, index) => (
               <Card key={index} className="shadow-lg border-0">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">{stat.label}</p>
                       <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                      <p className="text-xs text-green-600 font-medium">{stat.change} this week</p>
+                      <p className="text-xs text-green-600 font-medium">{stat.change}</p>
                     </div>
                     <div className="p-3 bg-gradient-to-br from-blue-50 to-green-50 rounded-full">
                       {stat.icon}
@@ -91,12 +166,12 @@ const ProgressPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {moodData.length > 0 ? (
+                {stats.moodTrend.length > 0 ? (
                   <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={moodData}>
+                    <LineChart data={stats.moodTrend}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
-                      <YAxis domain={[1, 10]} />
+                      <YAxis domain={[0, 10]} />
                       <Tooltip 
                         labelFormatter={(date) => new Date(date).toLocaleDateString()}
                         formatter={(value, name) => [value, name === 'mood' ? 'Mood Rating' : 'Sessions']}
@@ -106,7 +181,7 @@ const ProgressPage = () => {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-64 flex items-center justify-center text-gray-500">
-                    Start journaling to see your mood trends here
+                    Start using the platform to see your mood trends here
                   </div>
                 )}
               </CardContent>
@@ -152,7 +227,7 @@ const ProgressPage = () => {
                         {goal.current}/{goal.target}
                       </span>
                     </div>
-                    <Progress value={goal.progress} className="h-2" />
+                    <Progress value={Math.min(goal.progress, 100)} className="h-2" />
                   </div>
                 ))}
               </CardContent>
