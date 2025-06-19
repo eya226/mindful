@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UserActivity {
@@ -35,8 +34,8 @@ export interface ProgressStats {
 class ProgressTracker {
   async trackActivity(activity: Omit<UserActivity, 'id' | 'created_at'>): Promise<void> {
     try {
-      // Use type assertion for the table query since types haven't been regenerated yet
-      const { error } = await (supabase as any)
+      console.log('Tracking activity:', activity);
+      const { error } = await supabase
         .from('user_activities')
         .insert({
           ...activity,
@@ -45,16 +44,20 @@ class ProgressTracker {
 
       if (error) {
         console.error('Error tracking activity:', error);
+        throw error;
       }
+      
+      console.log('Activity tracked successfully');
     } catch (error) {
       console.error('Error tracking activity:', error);
+      throw error;
     }
   }
 
   async getProgressStats(userId: string): Promise<ProgressStats> {
     try {
-      // Get all user activities using type assertion
-      const { data: activities, error } = await (supabase as any)
+      console.log('Fetching progress stats for user:', userId);
+      const { data: activities, error } = await supabase
         .from('user_activities')
         .select('*')
         .eq('user_id', userId)
@@ -65,6 +68,7 @@ class ProgressTracker {
         return this.getEmptyStats();
       }
 
+      console.log('Retrieved activities:', activities?.length || 0);
       return this.calculateStats(activities || []);
     } catch (error) {
       console.error('Error getting progress stats:', error);
@@ -108,7 +112,7 @@ class ProgressTracker {
     const achievements = {
       sevenDayStreak: streakDays >= 7,
       mindfulWriter: journalEntries.length >= 20,
-      zenMaster: meditations.length >= 10,
+      zenMaster: meditations.length >=. 10,
       progressPioneer: activities.some(a => new Date(a.created_at!) <= monthAgo),
       wellnessWarrior: wellnessActivities.length >= 50
     };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { CalendarDays, Smile, Meh, Frown, TrendingUp, BookOpen, Save, Plus, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { progressTracker } from "@/services/progressTracker";
+import { toast } from "sonner";
 
 interface JournalEntry {
   id: string;
@@ -20,8 +22,7 @@ interface JournalEntry {
 }
 
 const JournalPage = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  // Start with empty entries array instead of mock data
+  const { user } = useAuth();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [currentEntry, setCurrentEntry] = useState({
     title: '',
@@ -38,7 +39,15 @@ const JournalPage = () => {
     neutral: { icon: <Meh className="h-4 w-4" />, color: 'text-gray-600', bg: 'bg-gray-100' },
     sad: { icon: <Frown className="h-4 w-4" />, color: 'text-blue-600', bg: 'bg-blue-100' },
     anxious: { icon: <Frown className="h-4 w-4" />, color: 'text-red-600', bg: 'bg-red-100' },
-    excited: { icon: <TrendingUp className="h-4 w-4" />, color: 'text-yellow-600', bg: 'bg-yellow-100' }
+    excited: { icon: <TrendingUp className="h-4 w-4" />, color: 'text-yellow-600', bg: 'bg-bg-yellow-100' }
+  };
+
+  const moodToRating = {
+    happy: 8,
+    excited: 9,
+    neutral: 5,
+    sad: 3,
+    anxious: 2
   };
 
   const generateAIInsight = (content: string, mood: string): string => {
@@ -74,8 +83,16 @@ const JournalPage = () => {
     return moodInsights[Math.floor(Math.random() * moodInsights.length)];
   };
 
-  const saveEntry = () => {
-    if (!currentEntry.title.trim() || !currentEntry.content.trim()) return;
+  const saveEntry = async () => {
+    if (!currentEntry.title.trim() || !currentEntry.content.trim()) {
+      toast.error("Please fill in both title and content");
+      return;
+    }
+
+    if (!user) {
+      toast.error("You must be logged in to save journal entries");
+      return;
+    }
 
     const newEntry: JournalEntry = {
       id: Date.now().toString(),
@@ -85,8 +102,31 @@ const JournalPage = () => {
     };
 
     setEntries(prev => [newEntry, ...prev]);
+    
+    // Track this journal entry as an activity
+    try {
+      await progressTracker.trackJournalEntry(
+        user.id, 
+        moodToRating[currentEntry.mood],
+        `${currentEntry.title}: ${currentEntry.tags.join(', ')}`
+      );
+      toast.success("Journal entry saved and progress tracked!");
+    } catch (error) {
+      console.error('Error tracking journal entry:', error);
+      toast.success("Journal entry saved!");
+    }
+
     setCurrentEntry({ title: '', content: '', mood: 'neutral', tags: [] });
   };
+
+  // Track login when component mounts
+  useEffect(() => {
+    if (user) {
+      progressTracker.trackLogin(user.id).catch(error => {
+        console.error('Error tracking login:', error);
+      });
+    }
+  }, [user]);
 
   const addTag = () => {
     if (newTag.trim() && !currentEntry.tags.includes(newTag.trim())) {
@@ -115,7 +155,7 @@ const JournalPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+      <Navbar isLoggedIn={!!user} setIsLoggedIn={() => {}} />
       
       <div className="pt-20 pb-8 px-4">
         <div className="max-w-6xl mx-auto">
