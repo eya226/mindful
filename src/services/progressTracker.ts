@@ -57,7 +57,7 @@ class ProgressTracker {
   async getProgressStats(userId: string): Promise<ProgressStats> {
     try {
       console.log('Fetching progress stats for user:', userId);
-      const { data: activities, error } = await supabase
+      const { data: activities, error } = await (supabase as any)
         .from('user_activities')
         .select('*')
         .eq('user_id', userId)
@@ -112,7 +112,7 @@ class ProgressTracker {
     const achievements = {
       sevenDayStreak: streakDays >= 7,
       mindfulWriter: journalEntries.length >= 20,
-      zenMaster: meditations.length >=. 10,
+      zenMaster: meditations.length >= 10,
       progressPioneer: activities.some(a => new Date(a.created_at!) <= monthAgo),
       wellnessWarrior: wellnessActivities.length >= 50
     };
