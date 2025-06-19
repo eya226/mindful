@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +24,7 @@ export const ChatInterface = ({ therapyType = 'general' }: ChatInterfaceProps) =
     fetchMessages,
     createSession,
     sendMessage,
+    switchSession,
     setCurrentSession,
     isAiReady,
     isAiInitializing,
@@ -60,15 +60,21 @@ export const ChatInterface = ({ therapyType = 'general' }: ChatInterfaceProps) =
 
   const handleNewSession = async () => {
     try {
-      await createSession(therapyType);
+      const therapyTypeMap = {
+        'cbt': 'Cognitive Behavioral Therapy',
+        'mindfulness': 'Mindfulness-Based Therapy',
+        'solution_focused': 'Solution-Focused Therapy',
+        'general': 'General Support'
+      };
+      const sessionTitle = `${therapyTypeMap[therapyType as keyof typeof therapyTypeMap] || 'General'} Session`;
+      await createSession(sessionTitle, therapyType);
     } catch (error) {
       console.error('Error creating new session:', error);
     }
   };
 
   const handleSessionSelect = async (session: ChatSession) => {
-    setCurrentSession(session);
-    await fetchMessages(session.id);
+    await switchSession(session.id);
   };
 
   if (loading && !currentSession) {

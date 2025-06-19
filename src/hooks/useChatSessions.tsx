@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,14 +79,14 @@ export const useChatSessions = () => {
   };
 
   // Create a new chat session
-  const createSession = async (therapyType: string = 'general') => {
+  const createSession = async (title: string, therapyType: string = 'general') => {
     if (!user) return null;
 
     const { data, error } = await supabase
       .from('chat_sessions')
       .insert({
         user_id: user.id,
-        title: `${therapyType.charAt(0).toUpperCase() + therapyType.slice(1)} Session`,
+        title: title,
         therapy_type: therapyType,
       })
       .select()
@@ -101,6 +102,15 @@ export const useChatSessions = () => {
     setMessages([]);
     setSessionStartTime(new Date());
     return data;
+  };
+
+  // Switch to an existing session
+  const switchSession = async (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      setCurrentSession(session);
+      await fetchMessages(sessionId);
+    }
   };
 
   // Send a message in the current session
@@ -200,6 +210,7 @@ export const useChatSessions = () => {
     fetchSessions,
     fetchMessages,
     createSession,
+    switchSession,
     sendMessage,
     setCurrentSession,
     isAiReady: mentalHealthAI.isModelReady(),

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { ChatInterface } from "@/components/ChatInterface";
-import { Brain, Heart, MessageCircle, Zap, Clock, TrendingUp } from "lucide-react";
+import { Brain, Heart, MessageCircle, Zap, Clock } from "lucide-react";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { useAuth } from "@/hooks/useAuth";
 import { progressTracker } from "@/services/progressTracker";
@@ -254,10 +254,7 @@ const TherapyPage = () => {
               </Card>
 
               {/* Chat Interface */}
-              <ChatInterface 
-                sessionId={currentSession.id}
-                therapyType={currentSession.therapy_type}
-              />
+              <ChatInterface therapyType={currentSession.therapy_type} />
             </div>
           )}
         </div>
