@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -7,22 +7,200 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Lock, User, Moon, Globe, Shield, Mail } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Bell, Lock, User, Moon, Globe, Shield, Mail, Download, Trash2, Key } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { UserProfile } from "@/components/UserProfile";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const SettingsPage = () => {
-  const { user } = useAuth();
-  const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [emailUpdates, setEmailUpdates] = useState(true);
-  const [dataSharing, setDataSharing] = useState(false);
-  const [twoFactor, setTwoFactor] = useState(false);
+interface UserSettings {
+  notifications: boolean;
+  darkMode: boolean;
+  emailUpdates: boolean;
+  dataSharing: boolean;
+  twoFactor: boolean;
+}
 
-  const handleSaveSettings = () => {
-    toast.success("Settings saved successfully!");
+const SettingsPage = () => {
+  const { user, signOut } = useAuth();
+  const [settings, setSettings] = useState<UserSettings>({
+    notifications: true,
+    darkMode: false,
+    emailUpdates: true,
+    dataSharing: false,
+    twoFactor: false,
+  });
+  const [loading, setLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+
+  // Load user settings on component mount
+  useEffect(() => {
+    if (user) {
+      loadUserSettings();
+    }
+  }, [user]);
+
+  const loadUserSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading settings:', error);
+        return;
+      }
+
+      // Load settings from user metadata or use defaults
+      const userMetadata = user?.user_metadata || {};
+      setSettings({
+        notifications: userMetadata.notifications ?? true,
+        darkMode: userMetadata.darkMode ?? false,
+        emailUpdates: userMetadata.emailUpdates ?? true,
+        dataSharing: userMetadata.dataSharing ?? false,
+        twoFactor: userMetadata.twoFactor ?? false,
+      });
+    } catch (error) {
+      console.error('Error loading user settings:', error);
+    }
+  };
+
+  const updateSetting = async (key: keyof UserSettings, value: boolean) => {
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+
+    try {
+      // Update user metadata with new settings
+      const { error } = await supabase.auth.updateUser({
+        data: { ...user?.user_metadata, [key]: value }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(`${key} updated successfully!`);
+    } catch (error) {
+      console.error(`Error updating ${key}:`, error);
+      toast.error(`Failed to update ${key}`);
+      // Revert the setting if update failed
+      setSettings(settings);
+    }
+  };
+
+  const handleSaveAllSettings = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { ...user?.user_metadata, ...settings }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("All settings saved successfully!");
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error("Failed to save settings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Password updated successfully!");
+      setNewPassword('');
+      setShowPasswordChange(false);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast.error("Failed to change password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setLoading(true);
+    try {
+      // Fetch user's data from various tables
+      const [profileData, journalData, chatData, activityData] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user?.id),
+        supabase.from('journal_entries').select('*').eq('user_id', user?.id),
+        supabase.from('chat_sessions').select('*').eq('user_id', user?.id),
+        supabase.from('user_activities').select('*').eq('user_id', user?.id)
+      ]);
+
+      const exportData = {
+        profile: profileData.data,
+        journal_entries: journalData.data,
+        chat_sessions: chatData.data,
+        user_activities: activityData.data,
+        exported_at: new Date().toISOString()
+      };
+
+      // Create and download JSON file
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `user_data_export_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Data exported successfully!");
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast.error("Failed to export data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setLoading(true);
+    try {
+      // Delete user data from all tables
+      await Promise.all([
+        supabase.from('journal_entries').delete().eq('user_id', user?.id),
+        supabase.from('chat_sessions').delete().eq('user_id', user?.id),
+        supabase.from('chat_messages').delete().eq('user_id', user?.id),
+        supabase.from('user_activities').delete().eq('user_id', user?.id),
+        supabase.from('profiles').delete().eq('id', user?.id)
+      ]);
+
+      // Sign out the user
+      await signOut();
+      
+      toast.success("Account deleted successfully");
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error("Failed to delete account");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -74,8 +252,8 @@ const SettingsPage = () => {
                   </div>
                   <Switch
                     id="push-notifications"
-                    checked={notifications}
-                    onCheckedChange={setNotifications}
+                    checked={settings.notifications}
+                    onCheckedChange={(checked) => updateSetting('notifications', checked)}
                   />
                 </div>
                 <Separator />
@@ -88,8 +266,8 @@ const SettingsPage = () => {
                   </div>
                   <Switch
                     id="email-updates"
-                    checked={emailUpdates}
-                    onCheckedChange={setEmailUpdates}
+                    checked={settings.emailUpdates}
+                    onCheckedChange={(checked) => updateSetting('emailUpdates', checked)}
                   />
                 </div>
               </CardContent>
@@ -115,11 +293,11 @@ const SettingsPage = () => {
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {twoFactor && <Badge variant="secondary">Enabled</Badge>}
+                    {settings.twoFactor && <Badge variant="secondary">Enabled</Badge>}
                     <Switch
                       id="two-factor"
-                      checked={twoFactor}
-                      onCheckedChange={setTwoFactor}
+                      checked={settings.twoFactor}
+                      onCheckedChange={(checked) => updateSetting('twoFactor', checked)}
                     />
                   </div>
                 </div>
@@ -133,8 +311,8 @@ const SettingsPage = () => {
                   </div>
                   <Switch
                     id="data-sharing"
-                    checked={dataSharing}
-                    onCheckedChange={setDataSharing}
+                    checked={settings.dataSharing}
+                    onCheckedChange={(checked) => updateSetting('dataSharing', checked)}
                   />
                 </div>
               </CardContent>
@@ -161,8 +339,8 @@ const SettingsPage = () => {
                   </div>
                   <Switch
                     id="dark-mode"
-                    checked={darkMode}
-                    onCheckedChange={setDarkMode}
+                    checked={settings.darkMode}
+                    onCheckedChange={(checked) => updateSetting('darkMode', checked)}
                   />
                 </div>
               </CardContent>
@@ -181,20 +359,88 @@ const SettingsPage = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button variant="outline" className="justify-start">
-                    <Mail className="mr-2 h-4 w-4" />
+                  <Button 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={() => setShowPasswordChange(true)}
+                  >
+                    <Key className="mr-2 h-4 w-4" />
                     Change Password
                   </Button>
-                  <Button variant="outline" className="justify-start">
-                    <Globe className="mr-2 h-4 w-4" />
+                  <Button 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={handleExportData}
+                    disabled={loading}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
                     Export Data
                   </Button>
                 </div>
+                
+                {showPasswordChange && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password">New Password</Label>
+                      <Input
+                        id="new-password"
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                      />
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button 
+                        onClick={handlePasswordChange}
+                        disabled={loading || !newPassword}
+                        size="sm"
+                      >
+                        Update Password
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowPasswordChange(false);
+                          setNewPassword('');
+                        }}
+                        size="sm"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
                 <Separator />
                 <div className="pt-4">
-                  <Button variant="destructive" className="w-full md:w-auto">
-                    Delete Account
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="w-full md:w-auto">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Account
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete your account
+                          and remove all your data from our servers including journal entries,
+                          chat sessions, and activity records.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteAccount}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete Account
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   <p className="text-sm text-gray-500 mt-2">
                     This action cannot be undone. All your data will be permanently deleted.
                   </p>
@@ -204,8 +450,12 @@ const SettingsPage = () => {
 
             {/* Save Settings */}
             <div className="flex justify-end">
-              <Button onClick={handleSaveSettings} className="bg-blue-600 hover:bg-blue-700">
-                Save All Settings
+              <Button 
+                onClick={handleSaveAllSettings} 
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={loading}
+              >
+                {loading ? "Saving..." : "Save All Settings"}
               </Button>
             </div>
           </div>

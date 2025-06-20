@@ -7,16 +7,60 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Mail, Calendar } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const UserProfile = () => {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState(user?.user_metadata?.full_name || '');
+  const [email, setEmail] = useState(user?.email || '');
 
   const handleSave = async () => {
-    // Here you would typically update the user profile in the database
-    toast.success('Profile updated successfully!');
+    if (!fullName.trim()) {
+      toast.error('Full name is required');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Update user metadata
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { full_name: fullName }
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      // Update or insert profile data
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user?.id,
+          email: user?.email,
+          full_name: fullName,
+          updated_at: new Date().toISOString()
+        });
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      toast.success('Profile updated successfully!');
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setFullName(user?.user_metadata?.full_name || '');
+    setEmail(user?.email || '');
     setIsEditing(false);
   };
 
@@ -33,7 +77,9 @@ export const UserProfile = () => {
             </AvatarFallback>
           </Avatar>
           <div>
-            <CardTitle className="text-2xl">{user.user_metadata?.full_name || 'Welcome!'}</CardTitle>
+            <CardTitle className="text-2xl">
+              {user.user_metadata?.full_name || 'Welcome!'}
+            </CardTitle>
             <CardDescription>{user.email}</CardDescription>
           </div>
         </div>
@@ -47,11 +93,14 @@ export const UserProfile = () => {
               <Input
                 id="email"
                 type="email"
-                value={user.email || ''}
+                value={email}
                 disabled
-                className="pl-10"
+                className="pl-10 bg-gray-50"
               />
             </div>
+            <p className="text-xs text-gray-500">
+              Email cannot be changed from this interface
+            </p>
           </div>
           
           <div className="space-y-2">
@@ -64,7 +113,8 @@ export const UserProfile = () => {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 disabled={!isEditing}
-                className="pl-10"
+                className={`pl-10 ${!isEditing ? 'bg-gray-50' : ''}`}
+                placeholder="Enter your full name"
               />
             </div>
           </div>
@@ -75,9 +125,26 @@ export const UserProfile = () => {
               <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 id="joinDate"
-                value={new Date(user.created_at).toLocaleDateString()}
+                value={new Date(user.created_at).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
                 disabled
-                className="pl-10"
+                className="pl-10 bg-gray-50"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="userId">User ID</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                id="userId"
+                value={user.id.substring(0, 8) + '...'}
+                disabled
+                className="pl-10 bg-gray-50"
               />
             </div>
           </div>
@@ -86,11 +153,18 @@ export const UserProfile = () => {
         <div className="flex justify-end space-x-2">
           {isEditing ? (
             <>
-              <Button variant="outline" onClick={() => setIsEditing(false)}>
+              <Button 
+                variant="outline" 
+                onClick={handleCancel}
+                disabled={loading}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleSave}>
-                Save Changes
+              <Button 
+                onClick={handleSave}
+                disabled={loading || !fullName.trim()}
+              >
+                {loading ? 'Saving...' : 'Save Changes'}
               </Button>
             </>
           ) : (
