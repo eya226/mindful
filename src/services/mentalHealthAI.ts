@@ -1,4 +1,3 @@
-
 import { pipeline } from '@huggingface/transformers';
 
 interface TherapySession {
@@ -58,6 +57,16 @@ class MentalHealthAI {
   }
 
   async generateTherapyResponse(userMessage: string, therapyType: string, conversationHistory: string[] = []): Promise<string> {
+    // Check for simple greetings first
+    if (this.isSimpleGreeting(userMessage)) {
+      return this.getGreetingResponse(userMessage);
+    }
+
+    // Check for casual/small talk
+    if (this.isCasualConversation(userMessage)) {
+      return this.getCasualResponse(userMessage);
+    }
+
     const emotions = this.analyzeEmotions(userMessage);
     const techniques = this.selectTherapyTechniques(userMessage, therapyType, emotions);
     
@@ -98,6 +107,73 @@ class MentalHealthAI {
     });
 
     return response;
+  }
+
+  private isSimpleGreeting(message: string): boolean {
+    const greetings = [
+      'hi', 'hello', 'hey', 'hiya', 'howdy', 'greetings', 'good morning', 
+      'good afternoon', 'good evening', 'good day', 'sup', 'what\'s up', 
+      'yo', 'hej', 'bonjour', 'hola'
+    ];
+    
+    const messageLower = message.toLowerCase().trim();
+    
+    // Check if the message is just a greeting (with optional punctuation)
+    const cleanMessage = messageLower.replace(/[.,!?]/g, '');
+    
+    return greetings.some(greeting => 
+      cleanMessage === greeting || 
+      cleanMessage === `${greeting} there` ||
+      cleanMessage === `${greeting} doc` ||
+      cleanMessage === `${greeting} doctor`
+    ) && message.length < 25; // Keep it short to avoid false positives
+  }
+
+  private isCasualConversation(message: string): boolean {
+    const casualPhrases = [
+      'how are you', 'how\'s it going', 'what\'s going on', 'how do you do',
+      'nice to meet you', 'pleased to meet you', 'good to see you',
+      'how\'s your day', 'how\'s everything', 'what\'s new', 'how are things',
+      'thanks', 'thank you', 'bye', 'goodbye', 'see you', 'take care',
+      'have a good day', 'nice talking', 'chat later'
+    ];
+    
+    const messageLower = message.toLowerCase().trim();
+    
+    return casualPhrases.some(phrase => 
+      messageLower.includes(phrase)
+    ) && message.length < 50; // Keep it reasonably short
+  }
+
+  private getGreetingResponse(message: string): string {
+    const responses = [
+      "Hello! I'm glad you're here. How are you feeling today?",
+      "Hi there! Welcome. What would you like to talk about?",
+      "Hello! It's good to see you. How can I support you today?",
+      "Hi! I'm here to listen. What's on your mind?",
+      "Hello! Thanks for reaching out. How are you doing?",
+    ];
+    
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  private getCasualResponse(message: string): string {
+    const messageLower = message.toLowerCase();
+    
+    if (messageLower.includes('how are you')) {
+      return "I'm doing well, thank you for asking! I'm here and ready to listen. How are you feeling today?";
+    }
+    
+    if (messageLower.includes('thank')) {
+      return "You're very welcome! I'm glad I could help. Is there anything else you'd like to talk about?";
+    }
+    
+    if (messageLower.includes('bye') || messageLower.includes('goodbye')) {
+      return "Take care! Remember, I'm here whenever you need someone to talk to. Have a good day!";
+    }
+    
+    // Default casual response
+    return "I'm here and listening. What would you like to share with me today?";
   }
 
   private buildTherapeuticPrompt(message: string, therapyType: string, history: string[], emotions: string[]): string {
@@ -228,55 +304,55 @@ Counselor:`;
 
   private getAdvancedAnxietyResponse(message: string): string {
     const responses = [
-      "I can really hear the anxiety in your words, and that feeling of being overwhelmed is so valid. Anxiety has this way of making our minds race with 'what ifs' that feel incredibly real in the moment. Let's take this one step at a time. Can you tell me what this anxiety feels like in your body right now? Sometimes noticing those physical sensations can help us ground ourselves in the present.",
-      "That anxious feeling you're describing - it's like your mind is trying to protect you by preparing for every possible threat, isn't it? But it's exhausting to live in that constant state of alert. I'm wondering, when you notice these anxious thoughts starting to spiral, what's the very first thing you become aware of? Is it a thought, a feeling in your chest, or something else?",
-      "Anxiety can be so isolating because it feels like everyone else has it figured out while you're struggling with these intense worries. But what you're experiencing is more common than you might think. I'm curious - if we could turn down the volume on that anxious voice in your head for just a moment, what would you want to say to yourself right now?"
+      "I can really hear the anxiety in your words, and that feeling of being overwhelmed is so valid. Anxiety has this way of making our minds race with 'what ifs' that feel incredibly real in the moment. Let's take this one step at a time. Can you tell me what this anxiety feels like in your body right now?",
+      "That anxious feeling you're describing sounds really intense. When anxiety hits like this, it can feel like your mind is trying to prepare for every possible threat. What's the very first thing you notice when these anxious thoughts start to spiral?",
+      "I hear how much this anxiety is affecting you. It takes real courage to reach out when you're feeling this overwhelmed. What would it look like if we could turn down the volume on that anxious voice for just a moment?"
     ];
     return responses[Math.floor(Math.random() * responses.length)];
   }
 
   private getAdvancedDepressionResponse(message: string): string {
     const responses = [
-      "What you're describing sounds incredibly heavy, and I want you to know that it takes real strength to reach out when you're feeling this way. Depression has this cruel way of convincing us that we're alone and that things will never get better. But you're here, talking to me, and that tells me there's a part of you that's still fighting. What's one small thing that used to bring you even a tiny bit of joy, even if it feels impossible to access right now?",
-      "That numbness and emptiness you're feeling - it's like being wrapped in a thick fog where everything feels muted and distant. Depression can make it so hard to remember who you were before this feeling took over. I'm wondering, if you could send a message to yourself from before this difficult time, what do you think that version of you would want you to know?",
-      "I can hear how exhausted you are, not just physically but emotionally too. When depression settles in like this, even the smallest tasks can feel overwhelming. You mentioned feeling worthless - that's the depression talking, not the truth about who you are. What would it look like to treat yourself with the same compassion you'd show a good friend going through this?"
+      "What you're describing sounds incredibly heavy, and I want you to know that it takes real strength to reach out when you're feeling this way. Depression has this cruel way of convincing us we're alone, but you're here talking to me. What's one small thing that used to bring you even a tiny bit of comfort?",
+      "That emptiness you're feeling - it's like being wrapped in fog where everything feels muted and distant. Depression can make it so hard to remember who you were before this feeling took over. You mentioned feeling worthless - that's the depression talking, not the truth about who you are.",
+      "I can hear how exhausted you are, not just physically but emotionally too. When depression settles in like this, even small tasks can feel overwhelming. What would it look like to treat yourself with the same compassion you'd show a good friend going through this?"
     ];
     return responses[Math.floor(Math.random() * responses.length)];
   }
 
   private getAdvancedAngerResponse(message: string): string {
     const responses = [
-      "I can feel the intensity of your anger, and it sounds like it's been building up for a while. Anger often gets dismissed as a 'bad' emotion, but it's actually trying to tell us something important - maybe that a boundary has been crossed or that something important to you has been threatened. What do you think your anger is trying to protect or defend right now?",
-      "That rage you're feeling - it's like a fire that's consuming everything in its path. Sometimes anger is our way of avoiding other feelings that might feel too vulnerable or scary to experience. I'm wondering, if we could sit with this anger for a moment without judgment, what other emotions might be underneath it?",
-      "It sounds like this anger has become overwhelming, maybe even frightening in its intensity. When we're this angry, our whole body goes into fight mode, and it can feel like we might explode. What does this anger feel like in your body? And more importantly, what do you need right now to feel safe with these feelings?"
+      "I can feel the intensity of your anger, and it sounds like it's been building up for a while. Anger often tries to tell us something important - maybe that a boundary has been crossed or something you value has been threatened. What do you think your anger is trying to protect right now?",
+      "That rage you're feeling sounds consuming. Sometimes anger is our way of avoiding other feelings that might feel too vulnerable. If we could sit with this anger for a moment without judgment, what other emotions might be underneath it?",
+      "It sounds like this anger has become overwhelming. When we're this angry, our whole body goes into fight mode. What does this anger feel like in your body? And what do you need right now to feel safe with these feelings?"
     ];
     return responses[Math.floor(Math.random() * responses.length)];
   }
 
   private getAdvancedGriefResponse(message: string): string {
     const responses = [
-      "Grief is such a profound expression of love - it's love with nowhere to go, as someone once said. The pain you're feeling reflects how deeply you cared, how much this person or this loss meant to you. There's no timeline for grief, despite what people might tell you. How has your grief been showing up for you lately? Has it been waves that crash over you, or more of a constant ache?",
-      "Loss changes everything, doesn't it? It's like the world suddenly operates by different rules, and everyone else seems to be moving forward while you're stuck in this place of pain. What you're experiencing is so normal, even though it feels anything but normal. What do you miss most about them, beyond just their physical presence?",
-      "The pain of grief can feel unbearable because it represents the depth of your connection. People often want to rush us through grief, but it's not something we 'get over' - it's something we learn to carry. How are you being gentle with yourself through this process? What would it look like to honor both your pain and your love?"
+      "Grief is love with nowhere to go. The pain you're feeling reflects how deeply you cared. There's no timeline for grief, despite what people might tell you. How has your grief been showing up for you lately?",
+      "Loss changes everything, doesn't it? It's like the world operates by different rules while everyone else seems to move forward and you're stuck in this place of pain. What do you miss most beyond just their physical presence?",
+      "The pain of grief represents the depth of your connection. People often want to rush us through grief, but it's not something we 'get over' - it's something we learn to carry. How are you being gentle with yourself through this?"
     ];
     return responses[Math.floor(Math.random() * responses.length)];
   }
 
   private getAdvancedLonelinessResponse(message: string): string {
     const responses = [
-      "Loneliness can be one of the most painful human experiences because we're wired for connection. It's that deep ache of feeling disconnected not just from others, but sometimes from ourselves too. Even when you're surrounded by people, you can still feel incredibly alone. What does loneliness feel like for you? Is it an empty feeling, or more like being behind glass watching life happen?",
-      "That feeling of isolation you're describing - it's like being on an island while everyone else seems to be living on the mainland, connected and engaged. Sometimes loneliness comes from not feeling truly seen or understood, even by people who care about us. When was the last time you felt genuinely connected to someone? What made that moment different?",
-      "Loneliness has this way of convincing us that we're the only ones feeling this way, but you're definitely not alone in feeling alone, if that makes sense. Sometimes we disconnect from others as a way to protect ourselves from further hurt. I'm wondering what connection means to you, and what makes it feel safe or unsafe?"
+      "Loneliness can be one of the most painful human experiences because we're wired for connection. Even when surrounded by people, you can still feel incredibly alone. What does loneliness feel like for you - is it an empty feeling, or more like being behind glass?",
+      "That feeling of isolation - like being on an island while everyone else lives on the mainland, connected and engaged. Sometimes loneliness comes from not feeling truly seen or understood. When was the last time you felt genuinely connected to someone?",
+      "Loneliness has this way of convincing us we're the only ones feeling this way, but you're definitely not alone in feeling alone. Sometimes we disconnect as a way to protect ourselves from further hurt. What makes connection feel safe or unsafe for you?"
     ];
     return responses[Math.floor(Math.random() * responses.length)];
   }
 
   private getAdvancedGeneralResponse(message: string): string {
     const responses = [
-      "Thank you for sharing something so personal with me. I can hear how much thought you've put into this, and it's clear you're really trying to understand yourself better. That takes real courage. What strikes me most is your willingness to be vulnerable here. What feels most important for you to explore right now as we sit with this together?",
-      "What you're describing resonates with so much of the human experience - that struggle to make sense of our feelings and find our way forward. Sometimes when we're in the middle of something difficult, it's hard to see all the pieces clearly. If you could step back and look at this situation with compassion, as if you were talking to a dear friend, what would you want them to know?",
-      "I'm struck by the complexity of what you're sharing. There's so much happening beneath the surface, and you're carrying a lot right now. Sometimes our struggles are actually signs of growth trying to happen, even though it doesn't feel that way in the moment. What would it look like to be patient with yourself as you work through this?",
-      "The fact that you're here, talking about these difficult things, tells me something important about your strength. It's not always easy to recognize that strength when we're struggling, but it's there. What kind of support feels most helpful to you right now? What do you need most from our conversation today?"
+      "Thank you for sharing something so personal with me. I can hear how much thought you've put into this. What strikes me most is your willingness to be vulnerable here. What feels most important for you to explore right now?",
+      "What you're describing resonates with so much of the human experience - that struggle to make sense of our feelings and find our way forward. If you could step back and look at this with compassion, as if talking to a dear friend, what would you want them to know?",
+      "I'm struck by the complexity of what you're sharing. There's so much happening beneath the surface. Sometimes our struggles are actually signs of growth trying to happen. What would it look like to be patient with yourself as you work through this?",
+      "The fact that you're here, talking about these difficult things, tells me something important about your strength. What kind of support feels most helpful to you right now? What do you need most from our conversation today?"
     ];
     return responses[Math.floor(Math.random() * responses.length)];
   }
