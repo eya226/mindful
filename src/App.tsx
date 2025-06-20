@@ -12,7 +12,7 @@ import JournalPage from './pages/JournalPage';
 import ProgressPage from './pages/ProgressPage';
 import CrisisPage from './pages/CrisisPage';
 import NotFound from './pages/NotFound';
-import ProtectedRoute from './components/ProtectedRoute';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 
 const queryClient = new QueryClient({
