@@ -1,3 +1,4 @@
+
 import { pipeline } from '@huggingface/transformers';
 
 interface TherapySession {
@@ -17,27 +18,39 @@ class MentalHealthAI {
     if (this.textGenerator || this.isLoading) return;
     
     this.isLoading = true;
-    console.log('Initializing advanced therapeutic AI...');
+    console.log('Initializing specialized mental health AI...');
     
     try {
-      // Using GPT-2 medium for better, more natural responses
+      // Using the specialized mental health chatbot model
       this.textGenerator = await pipeline(
         'text-generation',
-        'gpt2-medium',
+        'thrishala/mental_health_chatbot',
         { device: 'webgpu' }
       );
-      console.log('Advanced therapeutic AI model loaded successfully');
+      console.log('Mental health chatbot model loaded successfully');
     } catch (error) {
-      console.error('Error loading advanced AI model:', error);
+      console.error('Error loading mental health model:', error);
       try {
+        // Fallback to CPU if WebGPU fails
         this.textGenerator = await pipeline(
           'text-generation',
-          'gpt2',
+          'thrishala/mental_health_chatbot',
           { device: 'cpu' }
         );
-        console.log('Therapeutic AI model loaded on CPU');
+        console.log('Mental health chatbot model loaded on CPU');
       } catch (cpuError) {
-        console.error('Failed to load therapeutic AI model:', cpuError);
+        console.error('Failed to load mental health model:', cpuError);
+        // Final fallback to a general model
+        try {
+          this.textGenerator = await pipeline(
+            'text-generation',
+            'microsoft/DialoGPT-medium',
+            { device: 'cpu' }
+          );
+          console.log('Fallback conversational model loaded');
+        } catch (fallbackError) {
+          console.error('All models failed to load:', fallbackError);
+        }
       }
     } finally {
       this.isLoading = false;
@@ -52,26 +65,26 @@ class MentalHealthAI {
     
     if (this.textGenerator) {
       try {
-        const therapeuticPrompt = this.buildAdvancedTherapeuticPrompt(userMessage, therapyType, conversationHistory, emotions, techniques);
+        const therapeuticPrompt = this.buildTherapeuticPrompt(userMessage, therapyType, conversationHistory, emotions);
         
         const result = await this.textGenerator(therapeuticPrompt, {
-          max_new_tokens: 150,
-          temperature: 0.9,
+          max_new_tokens: 120,
+          temperature: 0.8,
           do_sample: true,
-          repetition_penalty: 1.3,
-          top_p: 0.95,
-          top_k: 50,
+          repetition_penalty: 1.2,
+          top_p: 0.9,
+          top_k: 40,
           pad_token_id: 50256,
         });
 
-        response = this.cleanAndHumanizeResponse(result, therapeuticPrompt);
+        response = this.cleanResponse(result, therapeuticPrompt);
       } catch (error) {
         console.error('Error generating AI response:', error);
       }
     }
     
-    // Enhanced fallback with more natural, human-like responses
-    if (!response || response.length < 40) {
+    // Enhanced fallback responses for better therapeutic quality
+    if (!response || response.length < 30) {
       response = this.generateAdvancedTherapeuticResponse(userMessage, therapyType, emotions, techniques);
     }
 
@@ -87,21 +100,18 @@ class MentalHealthAI {
     return response;
   }
 
-  private buildAdvancedTherapeuticPrompt(message: string, therapyType: string, history: string[], emotions: string[], techniques: string[]): string {
-    const context = history.slice(-3).join('\n');
-    const emotionContext = emotions.length > 0 ? `The client is experiencing: ${emotions.join(', ')}. ` : '';
+  private buildTherapeuticPrompt(message: string, therapyType: string, history: string[], emotions: string[]): string {
+    const context = history.slice(-2).join('\n');
+    const emotionContext = emotions.length > 0 ? `Client emotions: ${emotions.join(', ')}. ` : '';
     
-    return `You are Dr. Sarah, a warm, empathetic, and highly skilled therapist with 15 years of experience. You specialize in ${therapyType} therapy and have a gift for making clients feel truly heard and understood. Your responses are natural, conversational, and deeply therapeutic.
+    return `You are a compassionate mental health counselor. ${emotionContext}Provide supportive, empathetic responses that validate feelings and offer gentle guidance.
 
-${emotionContext}Your therapeutic approach combines professional expertise with genuine human warmth. You ask thoughtful follow-up questions, validate emotions, and provide gentle insights.
-
-${context ? `Recent conversation:\n${context}\n` : ''}
+${context ? `Previous conversation:\n${context}\n` : ''}
 Client: ${message}
-
-Dr. Sarah:`;
+Counselor:`;
   }
 
-  private cleanAndHumanizeResponse(response: any, prompt: string): string {
+  private cleanResponse(response: any, prompt: string): string {
     let cleaned = '';
     
     if (Array.isArray(response)) {
@@ -110,10 +120,13 @@ Dr. Sarah:`;
       cleaned = response.generated_text || '';
     }
 
+    // Remove the prompt from the response
     cleaned = cleaned.replace(prompt, '').trim();
-    cleaned = cleaned.replace(/^(Dr\. Sarah:|Therapist:|Client:|Response:)/i, '').trim();
     
-    // Take only the first complete sentence or paragraph
+    // Clean up common artifacts
+    cleaned = cleaned.replace(/^(Counselor:|Therapist:|Client:)/i, '').trim();
+    
+    // Take only the first complete response
     const sentences = cleaned.split(/[.!?]+/);
     if (sentences.length > 1) {
       cleaned = sentences.slice(0, 2).join('. ').trim();
@@ -122,7 +135,7 @@ Dr. Sarah:`;
       }
     }
 
-    // Remove any remaining artifacts
+    // Remove any trailing incomplete text
     cleaned = cleaned.replace(/\n.*$/s, '').trim();
     
     return cleaned;
@@ -178,9 +191,9 @@ Dr. Sarah:`;
   private generateAdvancedTherapeuticResponse(message: string, therapyType: string, emotions: string[], techniques: string[]): string {
     const messageLower = message.toLowerCase();
 
-    // Crisis intervention
+    // Crisis intervention - highest priority
     if (this.isCrisisMessage(messageLower)) {
-      return "I'm really concerned about what you're sharing with me right now. Your safety is my top priority. If you're having thoughts of hurting yourself, please reach out to someone immediately - call 988 (Suicide & Crisis Lifeline) or go to your nearest emergency room. I want you to know that you matter, and there are people who want to help you through this difficult time.";
+      return "I'm really concerned about what you're sharing with me. Your safety is my top priority. If you're having thoughts of hurting yourself, please reach out immediately - call 988 (Suicide & Crisis Lifeline) or go to your nearest emergency room. You matter, and there are people who want to help you through this difficult time.";
     }
 
     // Emotion-specific responses with more humanity
@@ -260,7 +273,7 @@ Dr. Sarah:`;
 
   private getAdvancedGeneralResponse(message: string): string {
     const responses = [
-      "Thank you for sharing something so personal with me. I can hear how much thought you've put into this, and it's clear you're really trying to understand yourself better. What strikes me most is your willingness to be vulnerable here. That takes real courage. What feels most important for you to explore right now as we sit with this together?",
+      "Thank you for sharing something so personal with me. I can hear how much thought you've put into this, and it's clear you're really trying to understand yourself better. That takes real courage. What strikes me most is your willingness to be vulnerable here. What feels most important for you to explore right now as we sit with this together?",
       "What you're describing resonates with so much of the human experience - that struggle to make sense of our feelings and find our way forward. Sometimes when we're in the middle of something difficult, it's hard to see all the pieces clearly. If you could step back and look at this situation with compassion, as if you were talking to a dear friend, what would you want them to know?",
       "I'm struck by the complexity of what you're sharing. There's so much happening beneath the surface, and you're carrying a lot right now. Sometimes our struggles are actually signs of growth trying to happen, even though it doesn't feel that way in the moment. What would it look like to be patient with yourself as you work through this?",
       "The fact that you're here, talking about these difficult things, tells me something important about your strength. It's not always easy to recognize that strength when we're struggling, but it's there. What kind of support feels most helpful to you right now? What do you need most from our conversation today?"
@@ -316,6 +329,53 @@ Dr. Sarah:`;
 
   isInitializing(): boolean {
     return this.isLoading;
+  }
+
+  private analyzeEmotions(message: string): string[] {
+    const emotionKeywords = {
+      anxiety: ['anxious', 'worried', 'nervous', 'panic', 'scared', 'frightened', 'overwhelmed', 'stress', 'tense'],
+      depression: ['sad', 'depressed', 'hopeless', 'empty', 'worthless', 'numb', 'tired', 'down', 'low'],
+      anger: ['angry', 'furious', 'rage', 'mad', 'frustrated', 'irritated', 'hate', 'annoyed'],
+      grief: ['loss', 'died', 'death', 'miss', 'gone', 'funeral', 'mourning', 'grief'],
+      stress: ['stressed', 'pressure', 'burnout', 'exhausted', 'overworked', 'busy'],
+      loneliness: ['lonely', 'alone', 'isolated', 'disconnected', 'withdrawn', 'social'],
+      fear: ['afraid', 'terrified', 'phobia', 'terror', 'dread', 'scary'],
+      shame: ['ashamed', 'embarrassed', 'guilty', 'humiliated', 'disgrace', 'regret'],
+      confusion: ['confused', 'lost', 'uncertain', 'unclear', 'mixed up', 'don\'t know'],
+      happiness: ['happy', 'joy', 'excited', 'good', 'great', 'wonderful', 'amazing'],
+      hope: ['hope', 'optimistic', 'positive', 'better', 'improve', 'progress']
+    };
+
+    const detectedEmotions: string[] = [];
+    const messageLower = message.toLowerCase();
+
+    for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
+      if (keywords.some(keyword => messageLower.includes(keyword))) {
+        detectedEmotions.push(emotion);
+      }
+    }
+
+    return detectedEmotions.length > 0 ? detectedEmotions : ['neutral'];
+  }
+
+  private selectTherapyTechniques(message: string, therapyType: string, emotions: string[]): string[] {
+    const techniques: string[] = [];
+
+    if (therapyType === 'cbt' || emotions.includes('anxiety') || emotions.includes('depression')) {
+      techniques.push('thought_challenging', 'cognitive_restructuring', 'behavioral_activation');
+    }
+
+    if (therapyType === 'dbt' || emotions.includes('anger') || emotions.includes('overwhelmed')) {
+      techniques.push('mindfulness', 'distress_tolerance', 'emotion_regulation');
+    }
+
+    if (message.toLowerCase().includes('trauma') || emotions.includes('fear')) {
+      techniques.push('grounding', 'safety_planning', 'trauma_processing');
+    }
+
+    techniques.push('active_listening', 'empathetic_responding', 'motivational_interviewing');
+
+    return techniques;
   }
 }
 
