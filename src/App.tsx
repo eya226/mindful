@@ -11,6 +11,7 @@ import WellnessPage from './pages/WellnessPage';
 import JournalPage from './pages/JournalPage';
 import ProgressPage from './pages/ProgressPage';
 import CrisisPage from './pages/CrisisPage';
+import SettingsPage from './pages/SettingsPage';
 import NotFound from './pages/NotFound';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
@@ -71,6 +72,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ProgressPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/settings" 
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
                   </ProtectedRoute>
                 } 
               />
