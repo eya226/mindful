@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,7 @@ import {
 import { toast } from "sonner";
 
 const DashboardPage = () => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { sessions } = useChatSessions();
   const [progressData, setProgressData] = useState<any>(null);
@@ -36,7 +35,7 @@ const DashboardPage = () => {
       if (!user) return;
       
       try {
-        const data = await progressTracker.getUserProgress(user.id);
+        const data = await progressTracker.getProgressStats(user.id);
         setProgressData(data);
       } catch (error) {
         console.error('Error loading progress data:', error);
@@ -51,7 +50,7 @@ const DashboardPage = () => {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await signOut();
       navigate('/');
       toast.success("Logged out successfully");
     } catch (error) {
@@ -93,16 +92,16 @@ const DashboardPage = () => {
 
   const weeklyGoals = [
     { goal: 'Complete 3 therapy sessions', current: sessions?.length || 0, target: 3, icon: <MessageCircle className="h-5 w-5" /> },
-    { goal: 'Practice mindfulness daily', current: progressData?.weeklyMindfulness || 0, target: 7, icon: <Heart className="h-5 w-5" /> },
-    { goal: 'Write 2 journal entries', current: progressData?.weeklyJournals || 0, target: 2, icon: <BookOpen className="h-5 w-5" /> },
-    { goal: 'Use wellness tools', current: progressData?.weeklyWellness || 0, target: 5, icon: <Activity className="h-5 w-5" /> }
+    { goal: 'Practice mindfulness daily', current: progressData?.weeklyGoals?.dailyPractice?.current || 0, target: 7, icon: <Heart className="h-5 w-5" /> },
+    { goal: 'Write 2 journal entries', current: progressData?.weeklyGoals?.journalEntries?.current || 0, target: 2, icon: <BookOpen className="h-5 w-5" /> },
+    { goal: 'Meditate 60 minutes', current: progressData?.weeklyGoals?.meditationMinutes?.current || 0, target: 60, icon: <Clock className="h-5 w-5" /> }
   ];
 
   const recentAchievements = [
-    { title: 'First Therapy Session', description: 'Completed your first AI therapy session', earned: true, icon: <Award className="h-5 w-5" /> },
-    { title: 'Consistent User', description: 'Used the app for 3 consecutive days', earned: progressData?.consecutiveDays >= 3, icon: <Calendar className="h-5 w-5" /> },
-    { title: 'Mindfulness Master', description: 'Completed 10 mindfulness sessions', earned: progressData?.totalMindfulness >= 10, icon: <Smile className="h-5 w-5" /> },
-    { title: 'Progress Tracker', description: 'Logged activities for a full week', earned: progressData?.weeklyStreak >= 7, icon: <TrendingUp className="h-5 w-5" /> }
+    { title: 'Seven Day Streak', description: 'Used the app for 7 consecutive days', earned: progressData?.achievements?.sevenDayStreak, icon: <Calendar className="h-5 w-5" /> },
+    { title: 'Mindful Writer', description: 'Completed 20 journal entries', earned: progressData?.achievements?.mindfulWriter, icon: <BookOpen className="h-5 w-5" /> },
+    { title: 'Zen Master', description: 'Completed 10 meditation sessions', earned: progressData?.achievements?.zenMaster, icon: <Heart className="h-5 w-5" /> },
+    { title: 'Wellness Warrior', description: 'Completed 50 wellness activities', earned: progressData?.achievements?.wellnessWarrior, icon: <Activity className="h-5 w-5" /> }
   ];
 
   if (loading) {
@@ -153,8 +152,8 @@ const DashboardPage = () => {
                     <Heart className="h-6 w-6 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{progressData?.totalMindfulness || 0}</p>
-                    <p className="text-sm text-gray-600">Mindfulness Sessions</p>
+                    <p className="text-2xl font-bold text-gray-900">{progressData?.meditationMinutes || 0}</p>
+                    <p className="text-sm text-gray-600">Meditation Minutes</p>
                   </div>
                 </div>
               </CardContent>
@@ -167,7 +166,7 @@ const DashboardPage = () => {
                     <BookOpen className="h-6 w-6 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{progressData?.totalJournals || 0}</p>
+                    <p className="text-2xl font-bold text-gray-900">{progressData?.journalEntries || 0}</p>
                     <p className="text-sm text-gray-600">Journal Entries</p>
                   </div>
                 </div>
@@ -181,7 +180,7 @@ const DashboardPage = () => {
                     <Calendar className="h-6 w-6 text-orange-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{progressData?.consecutiveDays || 0}</p>
+                    <p className="text-2xl font-bold text-gray-900">{progressData?.streakDays || 0}</p>
                     <p className="text-sm text-gray-600">Day Streak</p>
                   </div>
                 </div>
@@ -196,19 +195,46 @@ const DashboardPage = () => {
             </CardHeader>
             <CardContent className="p-6">
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {quickActions.map((action, index) => (
-                  <Button
-                    key={index}
-                    onClick={action.action}
-                    className={`${action.color} text-white p-6 h-auto flex flex-col items-center gap-3 text-center`}
-                  >
-                    {action.icon}
-                    <div>
-                      <p className="font-semibold">{action.title}</p>
-                      <p className="text-sm opacity-90">{action.description}</p>
-                    </div>
-                  </Button>
-                ))}
+                <Button
+                  onClick={() => navigate('/therapy')}
+                  className="bg-blue-500 hover:bg-blue-600 text-white p-6 h-auto flex flex-col items-center gap-3 text-center"
+                >
+                  <Brain className="h-6 w-6" />
+                  <div>
+                    <p className="font-semibold">Start Therapy Session</p>
+                    <p className="text-sm opacity-90">Begin a new AI therapy session</p>
+                  </div>
+                </Button>
+                <Button
+                  onClick={() => navigate('/wellness')}
+                  className="bg-green-500 hover:bg-green-600 text-white p-6 h-auto flex flex-col items-center gap-3 text-center"
+                >
+                  <Heart className="h-6 w-6" />
+                  <div>
+                    <p className="font-semibold">Wellness Activities</p>
+                    <p className="text-sm opacity-90">Meditation and mindfulness exercises</p>
+                  </div>
+                </Button>
+                <Button
+                  onClick={() => navigate('/journal')}
+                  className="bg-purple-500 hover:bg-purple-600 text-white p-6 h-auto flex flex-col items-center gap-3 text-center"
+                >
+                  <BookOpen className="h-6 w-6" />
+                  <div>
+                    <p className="font-semibold">Journal Entry</p>
+                    <p className="text-sm opacity-90">Write about your thoughts and feelings</p>
+                  </div>
+                </Button>
+                <Button
+                  onClick={() => navigate('/progress')}
+                  className="bg-orange-500 hover:bg-orange-600 text-white p-6 h-auto flex flex-col items-center gap-3 text-center"
+                >
+                  <TrendingUp className="h-6 w-6" />
+                  <div>
+                    <p className="font-semibold">View Progress</p>
+                    <p className="text-sm opacity-90">Track your mental health journey</p>
+                  </div>
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -224,21 +250,61 @@ const DashboardPage = () => {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-6">
-                  {weeklyGoals.map((goal, index) => (
-                    <div key={index}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          {goal.icon}
-                          <span className="font-medium text-gray-900">{goal.goal}</span>
-                        </div>
-                        <span className="text-sm text-gray-600">{goal.current}/{goal.target}</span>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="h-5 w-5" />
+                        <span className="font-medium text-gray-900">Complete 3 therapy sessions</span>
                       </div>
-                      <Progress 
-                        value={(goal.current / goal.target) * 100} 
-                        className="h-2"
-                      />
+                      <span className="text-sm text-gray-600">{progressData?.weeklyGoals?.therapySessions?.current || 0}/3</span>
                     </div>
-                  ))}
+                    <Progress 
+                      value={((progressData?.weeklyGoals?.therapySessions?.current || 0) / 3) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Heart className="h-5 w-5" />
+                        <span className="font-medium text-gray-900">Practice mindfulness daily</span>
+                      </div>
+                      <span className="text-sm text-gray-600">{progressData?.weeklyGoals?.dailyPractice?.current || 0}/7</span>
+                    </div>
+                    <Progress 
+                      value={((progressData?.weeklyGoals?.dailyPractice?.current || 0) / 7) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-5 w-5" />
+                        <span className="font-medium text-gray-900">Write 2 journal entries</span>
+                      </div>
+                      <span className="text-sm text-gray-600">{progressData?.weeklyGoals?.journalEntries?.current || 0}/2</span>
+                    </div>
+                    <Progress 
+                      value={((progressData?.weeklyGoals?.journalEntries?.current || 0) / 2) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        <span className="font-medium text-gray-900">Meditate 60 minutes</span>
+                      </div>
+                      <span className="text-sm text-gray-600">{progressData?.weeklyGoals?.meditationMinutes?.current || 0}/60</span>
+                    </div>
+                    <Progress 
+                      value={((progressData?.weeklyGoals?.meditationMinutes?.current || 0) / 60) * 100} 
+                      className="h-2"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -253,43 +319,137 @@ const DashboardPage = () => {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  {recentAchievements.map((achievement, index) => (
-                    <div 
-                      key={index}
-                      className={`p-4 rounded-lg border-2 ${
-                        achievement.earned 
-                          ? 'border-green-200 bg-green-50' 
-                          : 'border-gray-200 bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${
-                          achievement.earned 
-                            ? 'bg-green-100 text-green-600' 
-                            : 'bg-gray-100 text-gray-400'
-                        }`}>
-                          {achievement.icon}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className={`font-semibold ${
-                            achievement.earned ? 'text-green-800' : 'text-gray-600'
-                          }`}>
-                            {achievement.title}
-                          </h3>
-                          <p className={`text-sm ${
-                            achievement.earned ? 'text-green-600' : 'text-gray-500'
-                          }`}>
-                            {achievement.description}
-                          </p>
-                        </div>
-                        {achievement.earned && (
-                          <div className="text-green-600">
-                            <Award className="h-5 w-5" />
-                          </div>
-                        )}
+                  <div className={`p-4 rounded-lg border-2 ${
+                    progressData?.achievements?.sevenDayStreak 
+                      ? 'border-green-200 bg-green-50' 
+                      : 'border-gray-200 bg-gray-50'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        progressData?.achievements?.sevenDayStreak 
+                          ? 'bg-green-100 text-green-600' 
+                          : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        <Calendar className="h-5 w-5" />
                       </div>
+                      <div className="flex-1">
+                        <h3 className={`font-semibold ${
+                          progressData?.achievements?.sevenDayStreak ? 'text-green-800' : 'text-gray-600'
+                        }`}>
+                          Seven Day Streak
+                        </h3>
+                        <p className={`text-sm ${
+                          progressData?.achievements?.sevenDayStreak ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          Used the app for 7 consecutive days
+                        </p>
+                      </div>
+                      {progressData?.achievements?.sevenDayStreak && (
+                        <div className="text-green-600">
+                          <Award className="h-5 w-5" />
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  </div>
+
+                  <div className={`p-4 rounded-lg border-2 ${
+                    progressData?.achievements?.mindfulWriter 
+                      ? 'border-green-200 bg-green-50' 
+                      : 'border-gray-200 bg-gray-50'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        progressData?.achievements?.mindfulWriter 
+                          ? 'bg-green-100 text-green-600' 
+                          : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        <BookOpen className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`font-semibold ${
+                          progressData?.achievements?.mindfulWriter ? 'text-green-800' : 'text-gray-600'
+                        }`}>
+                          Mindful Writer
+                        </h3>
+                        <p className={`text-sm ${
+                          progressData?.achievements?.mindfulWriter ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          Completed 20 journal entries
+                        </p>
+                      </div>
+                      {progressData?.achievements?.mindfulWriter && (
+                        <div className="text-green-600">
+                          <Award className="h-5 w-5" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={`p-4 rounded-lg border-2 ${
+                    progressData?.achievements?.zenMaster 
+                      ? 'border-green-200 bg-green-50' 
+                      : 'border-gray-200 bg-gray-50'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        progressData?.achievements?.zenMaster 
+                          ? 'bg-green-100 text-green-600' 
+                          : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        <Heart className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`font-semibold ${
+                          progressData?.achievements?.zenMaster ? 'text-green-800' : 'text-gray-600'
+                        }`}>
+                          Zen Master
+                        </h3>
+                        <p className={`text-sm ${
+                          progressData?.achievements?.zenMaster ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          Completed 10 meditation sessions
+                        </p>
+                      </div>
+                      {progressData?.achievements?.zenMaster && (
+                        <div className="text-green-600">
+                          <Award className="h-5 w-5" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={`p-4 rounded-lg border-2 ${
+                    progressData?.achievements?.wellnessWarrior 
+                      ? 'border-green-200 bg-green-50' 
+                      : 'border-gray-200 bg-gray-50'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        progressData?.achievements?.wellnessWarrior 
+                          ? 'bg-green-100 text-green-600' 
+                          : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        <Activity className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`font-semibold ${
+                          progressData?.achievements?.wellnessWarrior ? 'text-green-800' : 'text-gray-600'
+                        }`}>
+                          Wellness Warrior
+                        </h3>
+                        <p className={`text-sm ${
+                          progressData?.achievements?.wellnessWarrior ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          Completed 50 wellness activities
+                        </p>
+                      </div>
+                      {progressData?.achievements?.wellnessWarrior && (
+                        <div className="text-green-600">
+                          <Award className="h-5 w-5" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
