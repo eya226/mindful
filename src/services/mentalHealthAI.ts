@@ -330,53 +330,6 @@ Counselor:`;
   isInitializing(): boolean {
     return this.isLoading;
   }
-
-  private analyzeEmotions(message: string): string[] {
-    const emotionKeywords = {
-      anxiety: ['anxious', 'worried', 'nervous', 'panic', 'scared', 'frightened', 'overwhelmed', 'stress', 'tense'],
-      depression: ['sad', 'depressed', 'hopeless', 'empty', 'worthless', 'numb', 'tired', 'down', 'low'],
-      anger: ['angry', 'furious', 'rage', 'mad', 'frustrated', 'irritated', 'hate', 'annoyed'],
-      grief: ['loss', 'died', 'death', 'miss', 'gone', 'funeral', 'mourning', 'grief'],
-      stress: ['stressed', 'pressure', 'burnout', 'exhausted', 'overworked', 'busy'],
-      loneliness: ['lonely', 'alone', 'isolated', 'disconnected', 'withdrawn', 'social'],
-      fear: ['afraid', 'terrified', 'phobia', 'terror', 'dread', 'scary'],
-      shame: ['ashamed', 'embarrassed', 'guilty', 'humiliated', 'disgrace', 'regret'],
-      confusion: ['confused', 'lost', 'uncertain', 'unclear', 'mixed up', 'don\'t know'],
-      happiness: ['happy', 'joy', 'excited', 'good', 'great', 'wonderful', 'amazing'],
-      hope: ['hope', 'optimistic', 'positive', 'better', 'improve', 'progress']
-    };
-
-    const detectedEmotions: string[] = [];
-    const messageLower = message.toLowerCase();
-
-    for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
-      if (keywords.some(keyword => messageLower.includes(keyword))) {
-        detectedEmotions.push(emotion);
-      }
-    }
-
-    return detectedEmotions.length > 0 ? detectedEmotions : ['neutral'];
-  }
-
-  private selectTherapyTechniques(message: string, therapyType: string, emotions: string[]): string[] {
-    const techniques: string[] = [];
-
-    if (therapyType === 'cbt' || emotions.includes('anxiety') || emotions.includes('depression')) {
-      techniques.push('thought_challenging', 'cognitive_restructuring', 'behavioral_activation');
-    }
-
-    if (therapyType === 'dbt' || emotions.includes('anger') || emotions.includes('overwhelmed')) {
-      techniques.push('mindfulness', 'distress_tolerance', 'emotion_regulation');
-    }
-
-    if (message.toLowerCase().includes('trauma') || emotions.includes('fear')) {
-      techniques.push('grounding', 'safety_planning', 'trauma_processing');
-    }
-
-    techniques.push('active_listening', 'empathetic_responding', 'motivational_interviewing');
-
-    return techniques;
-  }
 }
 
 export const mentalHealthAI = new MentalHealthAI();
